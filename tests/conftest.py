@@ -60,6 +60,7 @@ class Nondet:
     def __init__(self):
         self.web = Web()
         self.results = []
+        self.prompts = []
         self.result = {
             "verdict": "SCOPE_ALIGNED",
             "product_match": True,
@@ -70,8 +71,9 @@ class Nondet:
             "reason": "The frozen claim matches the stated ACR scope and version.",
         }
 
-    def exec_prompt(self, _prompt, response_format=None):
+    def exec_prompt(self, prompt, response_format=None):
         assert response_format == "json"
+        self.prompts.append(prompt)
         if self.results:
             return dict(self.results.pop(0))
         return dict(self.result)
@@ -92,6 +94,42 @@ class Contract:
     pass
 
 
+class CodeSlot:
+    def __init__(self, root, sender):
+        self.root = root
+        self.sender = sender
+        self.value = bytearray(b"v1")
+
+    def get(self):
+        return self
+
+    def _authorize(self):
+        if self.sender() not in self.root.upgraders.get():
+            raise UserError("locked Root slot")
+
+    def truncate(self):
+        self._authorize()
+        self.value.clear()
+
+    def extend(self, value):
+        self._authorize()
+        self.value.extend(value)
+
+
+class UpgraderSlot:
+    def __init__(self):
+        self.value = GenericList()
+
+    def get(self):
+        return self.value
+
+
+class RootState:
+    def __init__(self, sender):
+        self.upgraders = UpgraderSlot()
+        self.code = CodeSlot(self, sender)
+
+
 @pytest.fixture()
 def contract_module():
     genlayer = types.ModuleType("genlayer")
@@ -105,6 +143,11 @@ def contract_module():
         ),
         message_raw={"datetime": "2026-08-13T00:00:00+00:00"},
     )
+    root_state = RootState(lambda: gl.message.sender_address)
+    gl.storage = types.SimpleNamespace(
+        Root=types.SimpleNamespace(get=lambda: root_state)
+    )
+    gl._root_state = root_state
     genlayer.gl = gl
     genlayer.TreeMap = GenericDict
     genlayer.DynArray = GenericList
