@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+.pytest_cache/
+__pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.vercel/
+.downloads/
+.hallmark/
+DESIGN.md
+CONTEXT.md
+AGENTS.md
+CLAUDE.md
+
