@@ -33,9 +33,9 @@ const assessment: Assessment = {
   source_digest_set: [],
 };
 
-const hash = `0x${"a".repeat(64)}` as PendingWrite["hash"];
+const hash = `0x${"a".repeat(64)}` as NonNullable<PendingWrite["hash"]>;
 const phases: string[] = [];
-const wait = async (_hash: PendingWrite["hash"], onPhase: (phase: "idle" | "signature" | "submitted" | "consensus" | "readback" | "complete" | "error") => void) => onPhase("consensus");
+const wait = async (_hash: NonNullable<PendingWrite["hash"]>, onPhase: (phase: "idle" | "signature" | "submitted" | "consensus" | "readback" | "complete" | "error") => void) => onPhase("consensus");
 const intent = (postcondition: PendingWrite["postcondition"]): PendingWrite => ({ hash, label: "test", postcondition, submittedAt: "2026-08-13T00:00:00Z" });
 const loaded = (changes: Partial<Profile> = {}, evidence: Array<{ kind: "acr_html"; url: string }> = []) => ({ profile: { ...profile, ...changes }, evidence, assessment: undefined });
 
@@ -72,6 +72,18 @@ describe("contract response boundaries", () => {
 });
 
 describe("restart-safe method-specific reconciliation", () => {
+  it("recovers a hashless pre-sign journal from exact authoritative readback", async () => {
+    const pending: PendingWrite = { ...intent({ kind: "freeze_profile", profileId: 1 }), hash: undefined };
+    let waited = false;
+    const result = await reconcilePendingWrite(pending, () => undefined, {
+      wait: async () => { waited = true; },
+      find: async () => 1,
+      load: async () => loaded({ state: "FROZEN" }),
+    });
+    expect(result.profileId).toBe(1);
+    expect(waited).toBe(false);
+  });
+
   it("reconciles create_profile without a connected account and verifies the exact intent", async () => {
     const owner = "0x1111111111111111111111111111111111111111";
     const pending = intent({

@@ -219,7 +219,7 @@ export function getPendingWrite(): PendingWrite | undefined {
   if (!raw) return undefined;
   try {
     const value: unknown = JSON.parse(raw);
-    if (!isRecord(value) || !isTransactionHash(value.hash)) return undefined;
+    if (!isRecord(value) || (value.hash !== undefined && !isTransactionHash(value.hash))) return undefined;
     const postcondition = parsePostcondition(value.postcondition);
     if (typeof value.label !== "string" || typeof value.submittedAt !== "string" || !postcondition) return undefined;
     return { hash: value.hash, label: value.label, postcondition, submittedAt: value.submittedAt };
@@ -326,7 +326,7 @@ export async function reconcilePendingWrite(
   onPhase: (phase: TransactionPhase) => void,
   dependencies: ReadbackDependencies & { wait: typeof waitForFinalized } = { load: loadProfile, find: findProfileId, wait: waitForFinalized },
 ): Promise<{ profileId: number; result: LoadedProfile }> {
-  await dependencies.wait(intent.hash, onPhase);
+  if (intent.hash) await dependencies.wait(intent.hash, onPhase);
   onPhase("readback");
   return verifyPendingPostcondition(intent, dependencies);
 }
@@ -341,19 +341,26 @@ export async function submitWrite(args: {
   onPhase: (phase: TransactionPhase) => void;
 }): Promise<`0x${string}`> {
   args.onPhase("signature");
+  const journal = { label: args.label, postcondition: args.postcondition, submittedAt: new Date().toISOString() };
+  localStorage.setItem(PENDING_KEY, JSON.stringify(journal));
   const client = createClient({ chain: studionet, endpoint: STUDIONET_RPC, account: args.account, provider: args.provider });
-  const value = await client.writeContract({
-    address: contractAddress(),
-    functionName: args.functionName,
-    args: args.callArgs,
-    value: 0n,
-  });
+  let value: unknown;
+  try {
+    value = await client.writeContract({
+      address: contractAddress(),
+      functionName: args.functionName,
+      args: args.callArgs,
+      value: 0n,
+    });
+  } catch (error) {
+    const code = isRecord(error) ? error.code : undefined;
+    const message = error instanceof Error ? error.message : "";
+    if (code === 4001 || /user rejected|user denied/i.test(message)) clearPendingWrite();
+    throw error;
+  }
   if (!isTransactionHash(value)) throw new Error("SDK returned an invalid transaction hash");
   const hash = value;
-  localStorage.setItem(
-    PENDING_KEY,
-    JSON.stringify({ hash, label: args.label, postcondition: args.postcondition, submittedAt: new Date().toISOString() }),
-  );
+  localStorage.setItem(PENDING_KEY, JSON.stringify({ ...journal, hash }));
   args.onPhase("submitted");
   await waitForFinalized(hash, args.onPhase);
   args.onPhase("readback");

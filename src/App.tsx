@@ -205,8 +205,26 @@ export default function App() {
       setPhase("complete");
       setNotice(`${input.label} is FINALIZED, successful, and confirmed by contract readback. ${short(hash)}`);
     } catch (error) {
+      const intent = getPendingWrite();
+      setPending(intent);
+      if (intent && !intent.hash) {
+        try {
+          setNotice(`${input.label}: wallet result was ambiguous; checking contract state…`);
+          const readback = await reconcilePendingWrite(intent, setPhase);
+          setProfileId(readback.profileId);
+          setProfile(readback.result.profile);
+          setEvidence(readback.result.evidence);
+          setAssessment(readback.result.assessment);
+          clearPendingWrite();
+          setPending(undefined);
+          setPhase("complete");
+          setNotice(`${input.label} was recovered and confirmed by authoritative contract readback.`);
+          return;
+        } catch {
+          // Preserve the pre-sign journal for explicit reconciliation after ambiguous provider failures.
+        }
+      }
       setPhase("error");
-      setPending(getPendingWrite());
       setNotice(errorMessage(error));
     } finally {
       setBusy(false);
@@ -276,7 +294,7 @@ export default function App() {
         </section>
 
         {!configured && <div className="deployment-banner" role="status"><strong>Pre-deployment build</strong><span>The Studionet contract address will be injected only after the approved deployment.</span></div>}
-        {pending && <div className="recovery-banner"><div><strong>Pending transaction found</strong><span>{pending.label} · {short(pending.hash)}</span></div><button className="button secondary" disabled={busy} onClick={() => reconcile(pending)}>Reconcile</button></div>}
+        {pending && <div className="recovery-banner"><div><strong>Pending transaction found</strong><span>{pending.label}{pending.hash ? ` · ${short(pending.hash)}` : " · awaiting contract readback"}</span></div><button className="button secondary" disabled={busy} onClick={() => reconcile(pending)}>Reconcile</button></div>}
 
         <section className="workbench">
           <aside className="sidebar" aria-label="Covenant navigation">

@@ -50,7 +50,7 @@ export type PendingPostcondition =
   | { kind: "supersede_profile"; oldProfileId: number; newProfileId: number };
 
 export interface PendingWrite {
-  hash: `0x${string}` & { length: 66 };
+  hash?: `0x${string}` & { length: 66 };
   label: string;
   postcondition: PendingPostcondition;
   submittedAt: string;
