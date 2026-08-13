@@ -1,6 +1,6 @@
 # Live Studio evidence ledger
 
-Status: `READY FOR POST_DEPLOY_TEST REVIEW` — all required live cases below are reconciled; anonymous approval is still pending.
+Status: `POST_DEPLOY_TEST APPROVED` — all required live cases below are reconciled and the exact post-deploy evidence revision was anonymously approved.
 
 Network: GenLayer Studionet (`61999`)
 
@@ -94,6 +94,6 @@ These are retained so the package does not hide retries. They did not create an 
 | OP-06 | The first exact-duplicate click for journey 5 produced no new transaction hash. The next readback hit `500 requests per hour`, retry-after `3600` seconds. | All Studio/RPC activity stopped. After the hourly reset, unchanged count `7` was verified before the successful idempotency transaction P2-E07-IDEMPOTENT. |
 | OP-07 | The first unauthorized rehearsal-upgrade click produced no transaction hash while the selected account balance was still loading. | Contract transaction history showed no new item and account nonce was `latest=pending=0x6f`, proving no in-flight write. One retry then produced UPG-UNAUTHORIZED; no duplicate was created. |
 
-## Remaining checkpoint
+## Public frontend follow-up
 
-All required Studionet cases, finalized readbacks, frontend address wiring, and the separate upgrade rehearsal are complete. The project remains `DEPLOYMENT_READY` until an anonymous co-review AI approves the exact committed `POST_DEPLOY_TEST` evidence revision. GitHub and Vercel remain intentionally untouched until that approval and the user's mandatory account/team target confirmation.
+After `POST_DEPLOY_TEST`, the user verified the public Vercel journey with OKX Wallet on covenant `#4`: create, five evidence writes, freeze, and two assessments were each confirmed by authoritative contract readback. The final live profile state was `UNRESOLVED` with `HUMAN_REVIEW_REQUIRED`, attempts `2/3`, because validator retrieval produced only the claim-page digest. This valid fail-closed result and the public release parity are detailed in `docs/FINAL_RELEASE_EVIDENCE.md`. The only remaining gate is fresh anonymous `POST_GITHUB_VERCEL_FINAL` approval of the exact final evidence revision.

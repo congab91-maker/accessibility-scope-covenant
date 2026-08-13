@@ -22,7 +22,7 @@ Weakness/blocker: source retrieval records normalized-content digests rather tha
 
 ### Engineering: 4/5
 
-Evidence: exact dependency versions in the package lock, a reused dependency store whose owning package passes `npm ls --all`, 19 contract tests, 22 frontend boundary/reconciliation/provider-discovery tests, GenVM lint/validation, production build, source/security documentation, and separate contract/frontend modules.
+Evidence: exact dependency versions in the package lock, a reused dependency store whose owning package passes `npm ls --all`, 19 contract tests, 28 frontend boundary/reconciliation/provider-discovery tests, GenVM lint/validation, production build, source/security documentation, and separate contract/frontend modules.
 
 Weakness/blocker: the project uses an external dependency junction, so `npm ls` at the project root is not a clean-install closure check; no offline clean-install claim is made. Deployed-source, live receipt, public-source, and hosted-bundle parity are complete.
 
