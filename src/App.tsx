@@ -117,6 +117,18 @@ export default function App() {
     return result;
   }
 
+  async function loadAndAnnounce(id = profileId) {
+    setBusy(true);
+    try {
+      await refresh(id);
+      setNotice(`Loaded covenant #${id}.`);
+    } catch (error) {
+      setNotice(errorMessage(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function reconcile(intent: PendingWrite) {
     setBusy(true);
     setPhase("consensus");
@@ -301,7 +313,7 @@ export default function App() {
           <aside className="sidebar" aria-label="Covenant navigation">
             <p className="section-label">Workspace</p>
             <button className={!profile ? "nav-item active" : "nav-item"} onClick={() => setProfile(undefined)}><span>01</span>New covenant</button>
-            <form className="lookup" onSubmit={async (event) => { event.preventDefault(); setBusy(true); try { await refresh(profileId); setNotice(`Loaded covenant #${profileId}.`); } catch (error) { setNotice(errorMessage(error)); } finally { setBusy(false); } }}>
+            <form className="lookup" onSubmit={async (event) => { event.preventDefault(); await loadAndAnnounce(); }}>
               <label htmlFor="profile-lookup">Covenant ID</label>
               <div><input id="profile-lookup" type="number" min="1" value={profileId} onChange={(event) => setProfileId(Number(event.target.value))} /><button disabled={busy || !configured}>Load</button></div>
             </form>
@@ -353,8 +365,8 @@ export default function App() {
 
                 <section className="panel supersede-panel">
                   <p className="section-label">Version lineage</p><h3>Supersede this covenant</h3><p>Both records must share the same product identity and already be frozen or assessed.</p>
-                  {profile.supersedes > 0 && <p>Supersedes <button className="inline-link" onClick={() => refresh(profile.supersedes)}>covenant #{profile.supersedes}</button>.</p>}
-                  {profile.superseded_by > 0 && <p>Superseded by <button className="inline-link" onClick={() => refresh(profile.superseded_by)}>covenant #{profile.superseded_by}</button>.</p>}
+                  {profile.supersedes > 0 && <p>Supersedes <button className="inline-link" disabled={busy} onClick={() => loadAndAnnounce(profile.supersedes)}>covenant #{profile.supersedes}</button>.</p>}
+                  {profile.superseded_by > 0 && <p>Superseded by <button className="inline-link" disabled={busy} onClick={() => loadAndAnnounce(profile.superseded_by)}>covenant #{profile.superseded_by}</button>.</p>}
                   {profile.superseded_by === 0 && <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", postcondition: { kind: "supersede_profile", oldProfileId: profile.id, newProfileId: newId } }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !account || profile.state === "DRAFT"}>Link</button></form>}
                 </section>
               </div>
