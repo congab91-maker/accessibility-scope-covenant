@@ -23,7 +23,6 @@ The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-
 - Confirmed scope/team: `brunogg`
 - Project: `accessibility-scope-covenant`
 - Production alias: `https://accessibility-scope-covenant.vercel.app`
-- Immutable deployment: `https://accessibility-scope-covenant-jd7ngxnix-brunogg.vercel.app`
 - Deployment ID: `dpl_ANL16AMXqj3Ci9Ebz4DKJCWZp3dM`
 - Status: `Ready`
 - Production JavaScript: `/assets/index-CR9vpwsn.js`
@@ -31,6 +30,8 @@ The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-
 - Public bundle size: `596,637` bytes
 
 The public production bundle and local production bundle are byte-identical. The public bundle contains the canonical address and does not contain the disposable rehearsal address.
+
+Only the verified public production alias is provided as a reviewer link. The platform-generated immutable deployment URL is intentionally omitted because it redirects unauthenticated visitors to Vercel login.
 
 ## Live frontend checks
 
