@@ -237,13 +237,38 @@ export async function waitForFinalized(
   onPhase: (phase: TransactionPhase) => void,
 ): Promise<void> {
   onPhase("consensus");
-  const receipt = await readClient.waitForTransactionReceipt({
-    hash,
-    status: TransactionStatus.FINALIZED,
-    interval: 2_000,
-    retries: 180,
-  });
-  assertFinalizedSuccess(receipt);
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      const receipt = await readClient.waitForTransactionReceipt({
+        hash,
+        status: TransactionStatus.FINALIZED,
+        interval: 6_000,
+        retries: 60,
+      });
+      assertFinalizedSuccess(receipt);
+      return;
+    } catch (error) {
+      const delay = transientRpcRetryDelay(error, attempt);
+      if (delay === undefined) throw error;
+      await new Promise((resolve) => window.setTimeout(resolve, delay));
+    }
+  }
+}
+
+export function transientRpcRetryDelay(error: unknown, attempt: number): number | undefined {
+  if (attempt >= 4) return undefined;
+  const cause = isRecord(error) && isRecord(error.cause) ? error.cause : undefined;
+  const data = cause && isRecord(cause.data) ? cause.data : undefined;
+  const retryAfter = data?.retry_after_seconds;
+  const message = [error instanceof Error ? error.message : "", cause?.message, cause?.details]
+    .filter((value): value is string => typeof value === "string")
+    .join(" ");
+  if (/rate limit/i.test(message)) {
+    return (typeof retryAfter === "number" && retryAfter >= 0 ? retryAfter + 1 : 61) * 1_000;
+  }
+  return /failed to fetch|network|timed? out|temporarily unavailable/i.test(message)
+    ? [2_000, 4_000, 8_000, 16_000][attempt]
+    : undefined;
 }
 
 type LoadedProfile = Awaited<ReturnType<typeof loadProfile>>;

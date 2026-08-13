@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseAssessment, parseEvidence, parseProfile, reconcilePendingWrite } from "./contract";
+import { parseAssessment, parseEvidence, parseProfile, reconcilePendingWrite, transientRpcRetryDelay } from "./contract";
 import type { Assessment, PendingWrite, Profile } from "./types";
 
 const profile: Profile = {
@@ -137,5 +137,23 @@ describe("restart-safe method-specific reconciliation", () => {
 
     const mismatch = { ...dependencies, load: async () => loaded({ state: "DRAFT" }) };
     await expect(reconcilePendingWrite(pending, () => undefined, mismatch)).rejects.toThrow(/postcondition/);
+  });
+});
+
+describe("transientRpcRetryDelay", () => {
+  it("backs off for temporary fetch failures and stops after four retries", () => {
+    expect(transientRpcRetryDelay(new Error("Failed to fetch"), 0)).toBe(2_000);
+    expect(transientRpcRetryDelay(new Error("Failed to fetch"), 4)).toBeUndefined();
+  });
+
+  it("honors the Studionet rate-limit retry window", () => {
+    const error = Object.assign(new Error("An unknown RPC error occurred"), {
+      cause: { message: "Rate limit exceeded", data: { retry_after_seconds: 60 } },
+    });
+    expect(transientRpcRetryDelay(error, 0)).toBe(61_000);
+  });
+
+  it("does not retry deterministic transaction failures", () => {
+    expect(transientRpcRetryDelay(new Error("Contract execution failed"), 0)).toBeUndefined();
   });
 });
