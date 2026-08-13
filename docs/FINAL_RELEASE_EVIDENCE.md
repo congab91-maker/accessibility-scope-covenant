@@ -23,11 +23,11 @@ The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-
 - Confirmed scope/team: `brunogg`
 - Project: `accessibility-scope-covenant`
 - Production alias: `https://accessibility-scope-covenant.vercel.app`
-- Deployment ID: `dpl_9U1yYmYCBFg9o6UY9mToWv1QUexv`
+- Deployment ID: `dpl_7HLphF9P2Ju3RBSGo5TzZU9WnGD5`
 - Status: `Ready`
-- Production JavaScript: `/assets/index-o51nJHir.js`
-- Public/local bundle SHA-256: `ED5A54DD9920C9F4EF61C888429E5A62290A80E81F0F417F41BD13A02232BCBF`
-- Public bundle size: `596,850` bytes
+- Production JavaScript: `/assets/index-DHpveAjY.js`
+- Public/local bundle SHA-256: `3F423315BAFEC479F1CD6D7DADE952DC537067360F80BBF8C990689F8EF0181C`
+- Public bundle size: `597,254` bytes
 
 The public production bundle and local production bundle are byte-identical. The public bundle contains the canonical address and does not contain the disposable rehearsal address.
 
@@ -43,7 +43,7 @@ Only the verified public production alias is provided as a reviewer link. The pl
 - Cancelling closed the dialog without a wallet request.
 - Prior deterministic browser coverage verified widths 320, 375, 414, 768, and 1280, no unsafe links, and no console errors.
 
-The first real-extension user check exposed duplicate Backpack announcements and a duplicate legacy MetaMask alias. The corrected discovery path deduplicates by provider object, EIP-6963 reverse-domain identity and normalized display name. Two new regression cases pass and production was rebuilt and redeployed. On the corrected production alias, the user selected OKX Wallet, connected successfully, and verified that the header displayed both the connected address (`0x0d4b8…ad563`) and `Studionet · 61999`. No write transaction was requested or signed.
+The first real-extension user check exposed duplicate Backpack announcements and a duplicate legacy MetaMask alias. The final discovery path deduplicates the same provider object and same EIP-6963 reverse-domain identity, uses normalized display name only to suppress an identity-less legacy alias, and preserves distinct reverse-domain identities even when display names match. Four focused regression cases pass. On the final production alias, the selector showed exactly four unique detected providers — Phantom, OKX Wallet, MetaMask and Backpack — with no duplicate or mislabeled row. The user then selected OKX Wallet and verified that the header displayed both the connected address (`0x0d4b8…ad563`) and `Studionet · 61999`. No write transaction was requested or signed.
 
 ## Gate history and scope disclosure
 
