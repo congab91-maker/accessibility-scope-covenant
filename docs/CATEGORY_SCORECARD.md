@@ -22,13 +22,13 @@ Weakness/blocker: source retrieval records normalized-content digests rather tha
 
 ### Engineering: 4/5
 
-Evidence: exact dependency versions in the package lock, a reused dependency store whose owning package passes `npm ls --all`, 19 contract tests, 28 frontend boundary/reconciliation/provider-discovery tests, GenVM lint/validation, production build, source/security documentation, and separate contract/frontend modules.
+Evidence: exact dependency versions in the package lock, a reused dependency store whose owning package passes `npm ls --all`, 19 contract tests, 31 frontend boundary/reconciliation/provider-discovery tests, GenVM lint/validation, production build, source/security documentation, and separate contract/frontend modules.
 
 Weakness/blocker: the project uses an external dependency junction, so `npm ls` at the project root is not a clean-install closure check; no offline clean-install claim is made. Deployed-source, live receipt, public-source, and hosted-bundle parity are complete.
 
 ### Frontend / UX: 4/5
 
-Evidence: complete create/evidence/freeze/assess/retry/read/supersede journeys; explicit supported-provider selector; manual Studionet switching; persistent pending-intent reconciliation; strict receipt/readback boundary; responsive browser verification at five widths with no console errors or unsafe links.
+Evidence: complete create/evidence/freeze/assess/retry/read/supersede journeys; explicit supported-provider selector; manual Studionet switching; actor- and baseline-bound pending reconciliation; strict receipt/readback boundary; decoded terminal rollback UX; public-reader reload; two-way lineage navigation; responsive browser verification at five widths with no console errors or unsafe links.
 
 Weakness/blocker: production renders correctly, the corrected explicit provider selector is verified without automatic provider selection, and the user successfully connected OKX Wallet on Studionet. The product intentionally requires a fresh connection after each full reload and does not silently restore a wallet session.
 

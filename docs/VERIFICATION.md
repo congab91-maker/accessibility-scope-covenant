@@ -33,11 +33,11 @@ C:\Users\LEGION\AppData\Local\Programs\Python\Python313\python.exe -m pytest -q 
 19 passed
 
 $env:GENVM_VERSION='v0.3.0-rc7'
-genvm-lint check contracts\accessibility_scope_covenant.py --json
+E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\.venv\Scripts\python.exe -m genvm_linter.cli check contracts\accessibility_scope_covenant.py --json
 ok=true; lint=3 passed; validate=true; contract=AccessibilityScopeCovenant; methods=13; views=7; writes=6
 
 npm test
-28 passed
+31 passed
 
 npm run build
 passed
@@ -51,7 +51,7 @@ Two advisories are reviewed:
 ## Test coverage summary
 
 - Contract: profile lifecycle, URL rejection, exact freeze covenant, idempotency, every verdict/consequence, fail-closed retrieval, bounded retry, schema-valid leader disagreement, contradictory flags, supersession, absence of a verdict setter, untrusted prompt injection, Root Slot registration, authorized upgrade/storage preservation, and unauthorized upgrade/no code change.
-- Frontend: receipt finality/leader success boundaries, bigint-safe parsing, runtime contract-response validation, safe identifiers, wallet-provider deduplication, and method-specific readback behavior. Restart reconciliation tests cover create (without a connected wallet), evidence, freeze, assessment, both sides of supersession, delayed readback, mismatch, and duplicate reconciliation. Pending intent is retained unless the exact postcondition verifies.
+- Frontend: receipt finality/leader success boundaries, simplified rollback decoding, runtime contract-response validation, safe identifiers, wallet-provider deduplication, and method-specific readback behavior. Restart reconciliation covers create without a connected wallet, evidence, freeze, assessment, both sides of supersession, delayed readback and mismatch. Known hashes cannot bypass `FINALIZED/SUCCESS`; hashless recovery is actor-bound and requires a new transition from its pre-write baseline. Regressions reject no-broadcast, pre-existing idempotent state and finalized-error false recovery.
 - Browser: explicit provider selector and cancel behavior; no supported-provider fallback; no console errors; no unsafe links; no horizontal overflow or viewport escape at widths 320, 375, 414, 768, and 1280.
 
 ## Deployment and recovery record
@@ -70,6 +70,6 @@ The complete post-deployment matrix is reconciled without cherry-picking in `doc
 
 The rehearsal deployment, authorized upgrade, and unauthorized upgrade are respectively `0x3ea45811fd48d56c7b6deb37509e2cf9e7f67ff3f3affd0cd92b3de135a5e80b`, `0x7e4b2662696615911f42cce6e10018734daed29dbd50d3f7d1b2460bec7dcc30`, and `0x2a8f51729dff46e6291ba5996f3ff68c48cf8aa54dbfbdad2a0fda8729200b97`. The authorized path preserved the exact 20,529-byte source SHA-256 and fixture state; the unauthorized path finalized as `ERROR` with Root Slot storage access `forbidden`, followed by unchanged source/state readback.
 
-The frontend production build is compiled with the canonical address through `VITE_CONTRACT_ADDRESS`; 28 frontend tests and the production build pass. Anonymous `POST_DEPLOY_TEST` approved commit `7dc65dcef5e36e268bb52898d36bba89e29d3f47` and its 28-entry manifest. A later user live-wallet check exposed duplicate EIP-6963/legacy aliases. The frontend now deduplicates the same provider object and same reverse-domain identity, uses normalized display name only to suppress an identity-less legacy alias, and preserves different reverse-domain identities even when names match; four focused regression cases cover those boundaries. Six additional receipt/recovery regressions cover simplified SDK status values, absent versus explicitly false consensus finality, pre-sign journaling, ambiguous provider returns, authoritative after-broadcast recovery, and readback-first reconciliation.
+The frontend production build is compiled with the canonical address through `VITE_CONTRACT_ADDRESS`; 31 frontend tests and the production build pass. Anonymous `POST_DEPLOY_TEST` approved commit `7dc65dcef5e36e268bb52898d36bba89e29d3f47` and its 28-entry manifest. Later live-wallet testing exposed provider aliases, ambiguous SDK receipt fields, unsafe readback-first recovery and a simplified rollback receipt. The corrected client deduplicates wallet identities, binds recovery to actor plus pre-write baseline, requires receipt success for known hashes, and safely decodes rollback payloads without serializing hostile receipt internals.
 
-The public repository is `https://github.com/congab91-maker/accessibility-scope-covenant` (`PUBLIC`, default branch `codex/main`). The reviewed application revision is `047cc97b25ea7ff14167f0788cdf583ad45fca72`. Vercel production is `https://accessibility-scope-covenant.vercel.app` in confirmed scope `brunogg`; the exact immutable deployment ID is recorded in the final checkpoint prompt so evidence-only commits do not make this file self-referential. Public raw contract parity, byte-identical public/local JavaScript bundle parity, the corrected provider selector, transaction recovery, and the complete user OKX Wallet/Studionet covenant #4 journey are recorded in `docs/FINAL_RELEASE_EVIDENCE.md`. Final completion remains pending fresh anonymous `POST_GITHUB_VERCEL_FINAL` approval and matching primary-AI approval of the final evidence revision.
+The public repository is `https://github.com/congab91-maker/accessibility-scope-covenant` (`PUBLIC`, default branch `codex/main`). The final application source revision before the evidence-only commit is `075ffb63c730834479e256227c6d06e62b06f552`. Vercel production is `https://accessibility-scope-covenant.vercel.app` in confirmed scope `brunogg`; the exact immutable deployment ID is recorded in the final checkpoint prompt so evidence-only commits do not make this file self-referential. Public raw contract parity, byte-identical public/local JavaScript parity, provider selection, success/rejection/reconciliation, public-reader and lineage journeys are recorded in `docs/FINAL_RELEASE_EVIDENCE.md`. Completion remains pending fresh anonymous `POST_GITHUB_VERCEL_FINAL` approval and matching primary-AI approval of the final evidence revision.

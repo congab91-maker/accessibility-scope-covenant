@@ -42,7 +42,7 @@ Validator equivalence deliberately excludes free-form reasoning prose. It compar
 
 ## Transaction lifecycle
 
-The wallet signs only after the user chooses a provider. The UI journals the exact pending intent before submission, then requires receipt status `FINALIZED`, consensus finality when supplied, leader execution `SUCCESS`, and method-specific authoritative contract readback. A reload reconciles the journal before another write is allowed. Ambiguous, failed or mismatched outcomes remain pending or surface as failures; the client never treats a transaction hash alone as success and never retries a write blindly.
+The wallet signs only after the user chooses a provider. Before signing, the UI journals the actor, exact intent and authoritative pre-write baseline. A known transaction hash must reach `FINALIZED`, pass consensus finality when supplied, and have leader execution `SUCCESS` before method-specific readback can confirm it. Hashless recovery additionally requires a new transition from the saved baseline. A terminal rollback clears the journal and shows its decoded contract reason; ambiguous outcomes remain pending. The client never treats a hash or a pre-existing idempotent state alone as success and never retries a write blindly.
 
 ## Run locally
 
@@ -67,10 +67,10 @@ Current exact-revision results:
 
 ```powershell
 python -m pytest -q -p no:cacheprovider  # 19 passed
-npm test                                 # 28 passed
+npm test                                 # 31 passed
 npm run build                            # passed
 $env:GENVM_VERSION='v0.3.0-rc7'
-genvm-lint check contracts\accessibility_scope_covenant.py --json
+& 'E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\.venv\Scripts\python.exe' -m genvm_linter.cli check contracts\accessibility_scope_covenant.py --json
 # ok=true; lint=3 passed; methods=13 (7 view, 6 write)
 ```
 
