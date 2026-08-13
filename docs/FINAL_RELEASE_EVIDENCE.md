@@ -23,11 +23,11 @@ The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-
 - Confirmed scope/team: `brunogg`
 - Project: `accessibility-scope-covenant`
 - Production alias: `https://accessibility-scope-covenant.vercel.app`
-- Deployment ID: `dpl_ANL16AMXqj3Ci9Ebz4DKJCWZp3dM`
+- Deployment ID: `dpl_9U1yYmYCBFg9o6UY9mToWv1QUexv`
 - Status: `Ready`
-- Production JavaScript: `/assets/index-CR9vpwsn.js`
-- Public/local bundle SHA-256: `23F1F50E10C8D194B434D2BDD25EB018646DFBBC14AC13AACA49DA30D998E4DD`
-- Public bundle size: `596,637` bytes
+- Production JavaScript: `/assets/index-o51nJHir.js`
+- Public/local bundle SHA-256: `ED5A54DD9920C9F4EF61C888429E5A62290A80E81F0F417F41BD13A02232BCBF`
+- Public bundle size: `596,850` bytes
 
 The public production bundle and local production bundle are byte-identical. The public bundle contains the canonical address and does not contain the disposable rehearsal address.
 
@@ -43,13 +43,15 @@ Only the verified public production alias is provided as a reviewer link. The pl
 - Cancelling closed the dialog without a wallet request.
 - Prior deterministic browser coverage verified widths 320, 375, 414, 768, and 1280, no unsafe links, and no console errors.
 
+The first real-extension user check exposed duplicate Backpack announcements and a duplicate legacy MetaMask alias. The corrected discovery path deduplicates by provider object, EIP-6963 reverse-domain identity and normalized display name. Two new regression cases pass and production was rebuilt and redeployed. On the corrected production alias, the user selected OKX Wallet, connected successfully, and verified that the header displayed both the connected address (`0x0d4b8…ad563`) and `Studionet · 61999`. No write transaction was requested or signed.
+
 ## Gate history and scope disclosure
 
 - Anonymous `PRE_DEPLOY`: `APPROVED` for the exact contract source later deployed.
 - Anonymous `POST_DEPLOY_TEST`: `APPROVED` for commit `7dc65dcef5e36e268bb52898d36bba89e29d3f47` and the 28-entry post-deploy manifest.
-- This revision changes release/evidence documentation only. Contract source, frontend source, tests, dependencies, the canonical deployment, and the deployed production bundle are unchanged from the approved post-deploy revision.
+- The contract source, dependencies and canonical Studionet deployment are unchanged. Frontend wallet discovery, its regression tests, the production bundle and release evidence changed after the user exposed duplicate provider aliases; prior final approval is therefore superseded and a fresh exact-revision review is required.
 - The final evidence commit and manifest will be supplied to anonymous `POST_GITHUB_VERCEL_FINAL`; Task status remains pending until that exact package receives anonymous approval and the primary AI approves the same revision.
 
-## User wallet test boundary
+## User wallet test
 
-Automated checks do not impersonate the user's wallet. The user may now open the production alias, choose their actual supported provider, approve the Studionet switch if prompted, and confirm that the connected address is displayed. No write transaction is required for this connection-only check.
+Automated checks did not impersonate the user's wallet. The user completed the required connection-only check with OKX Wallet on the public production alias and returned screenshot evidence showing the provider name, abbreviated connected address and Studionet chain label. This test sent no project write transaction.

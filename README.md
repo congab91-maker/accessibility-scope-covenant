@@ -67,7 +67,7 @@ Current exact-revision results:
 
 ```powershell
 python -m pytest -q -p no:cacheprovider  # 19 passed
-npm test                                 # 18 passed
+npm test                                 # 20 passed
 npm run build                            # passed
 $env:GENVM_VERSION='v0.3.0-rc7'
 genvm-lint check contracts\accessibility_scope_covenant.py --json
