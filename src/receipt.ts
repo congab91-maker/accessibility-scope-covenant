@@ -28,7 +28,7 @@ function safeError(value: unknown): string {
 
 export function assertFinalizedSuccess(value: unknown): void {
   if (!isRecord(value)) throw new Error("Malformed transaction receipt");
-  const status = text(value.statusName) ?? text(value.status);
+  const status = text(value.statusName) ?? text(value.status_name) ?? text(value.status);
   if (status !== TransactionStatus.FINALIZED) {
     throw new Error(`Transaction is not FINALIZED (${status ?? "UNKNOWN"})`);
   }

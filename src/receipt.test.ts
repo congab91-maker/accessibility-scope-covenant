@@ -13,6 +13,16 @@ describe("assertFinalizedSuccess", () => {
     ).not.toThrow();
   });
 
+  it("accepts the SDK simplified status_name receipt", () => {
+    expect(() =>
+      assertFinalizedSuccess({
+        status_name: "FINALIZED",
+        txExecutionResultName: "FINISHED_WITH_RETURN",
+        consensus_data: { final: true },
+      }),
+    ).not.toThrow();
+  });
+
   it("accepts the documented successful leader envelope", () => {
     expect(() =>
       assertFinalizedSuccess({
