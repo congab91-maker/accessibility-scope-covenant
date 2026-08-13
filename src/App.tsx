@@ -56,6 +56,11 @@ function WalletDialog({ options, busy, onChoose, onClose }: {
   onChoose: (option: WalletOption) => void;
   onClose: () => void;
 }) {
+  const nameCounts = options.reduce((counts, option) => {
+    const name = option.name.trim().toLowerCase();
+    counts.set(name, (counts.get(name) ?? 0) + 1);
+    return counts;
+  }, new Map<string, number>());
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => event.key === "Escape" && !busy && onClose();
     window.addEventListener("keydown", handleKey);
@@ -71,7 +76,11 @@ function WalletDialog({ options, busy, onChoose, onClose }: {
           {options.length ? options.map((option, index) => (
             <button autoFocus={index === 0} className="wallet-option" disabled={busy} key={option.id} onClick={() => onChoose(option)}>
               {option.icon ? <img src={option.icon} alt="" /> : <span className="wallet-mark">W</span>}
-              <span>{option.name}</span><small>Detected</small>
+              <span className="wallet-label">
+                <span>{option.name}</span>
+                {(nameCounts.get(option.name.trim().toLowerCase()) ?? 0) > 1 && option.rdns ? <small className="wallet-rdns">{option.rdns}</small> : null}
+              </span>
+              <small>Detected</small>
             </button>
           )) : <div className="empty-state">{busy ? "Detecting compatible providers…" : "No compatible browser wallet was detected."}</div>}
         </div>

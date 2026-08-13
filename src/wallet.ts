@@ -41,14 +41,21 @@ function providerName(provider: Eip1193Provider, index: number): string {
 
 export function dedupeWalletOptions(options: WalletOption[]): WalletOption[] {
   const providers = new Set<Eip1193Provider>();
-  const identities = new Set<string>();
+  const reverseDomains = new Set<string>();
+  const anonymousNames = new Set<string>();
+  const identifiedNames = new Set(options.flatMap((option) => option.rdns?.trim() ? [option.name.trim().toLowerCase()] : []));
   return options.filter((option) => {
     const name = option.name.trim().toLowerCase();
-    const identity = option.rdns?.trim().toLowerCase() || name;
-    if (providers.has(option.provider) || identities.has(identity) || identities.has(name)) return false;
+    const reverseDomain = option.rdns?.trim().toLowerCase();
+    if (providers.has(option.provider)) return false;
+    if (reverseDomain) {
+      if (reverseDomains.has(reverseDomain)) return false;
+      reverseDomains.add(reverseDomain);
+    } else {
+      if (identifiedNames.has(name) || anonymousNames.has(name)) return false;
+      anonymousNames.add(name);
+    }
     providers.add(option.provider);
-    identities.add(identity);
-    identities.add(name);
     return true;
   });
 }
