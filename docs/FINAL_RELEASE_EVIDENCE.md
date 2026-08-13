@@ -23,7 +23,7 @@ The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-
 - Confirmed scope/team: `brunogg`
 - Project: `accessibility-scope-covenant`
 - Production alias: `https://accessibility-scope-covenant.vercel.app`
-- Deployment ID: `dpl_H6XYZmEBuFCdRZtsSqsD6TkM64KU`
+- Production deployment: verified `Ready`; the immutable deployment ID is recorded in the exact-revision checkpoint prompt
 - Status: `Ready`
 - Production JavaScript: `/assets/index-Dzp4GbXz.js`
 - Public/local bundle SHA-256: `C721F9041473E1EDA01DDAB6E14BDD954EA0CEF8FF4806204EDCF4FBB5B6F866`
