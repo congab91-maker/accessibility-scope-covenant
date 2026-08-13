@@ -353,7 +353,9 @@ export default function App() {
 
                 <section className="panel supersede-panel">
                   <p className="section-label">Version lineage</p><h3>Supersede this covenant</h3><p>Both records must share the same product identity and already be frozen or assessed.</p>
-                  <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", postcondition: { kind: "supersede_profile", oldProfileId: profile.id, newProfileId: newId } }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !account}>Link</button></form>
+                  {profile.supersedes > 0 && <p>Supersedes <button className="inline-link" onClick={() => refresh(profile.supersedes)}>covenant #{profile.supersedes}</button>.</p>}
+                  {profile.superseded_by > 0 && <p>Superseded by <button className="inline-link" onClick={() => refresh(profile.superseded_by)}>covenant #{profile.superseded_by}</button>.</p>}
+                  {profile.superseded_by === 0 && <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", postcondition: { kind: "supersede_profile", oldProfileId: profile.id, newProfileId: newId } }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !account || profile.state === "DRAFT"}>Link</button></form>}
                 </section>
               </div>
             )}
