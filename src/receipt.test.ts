@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { assertFinalizedSuccess, errorMessage } from "./receipt";
+import { FinalizedExecutionError, assertFinalizedSuccess, errorMessage } from "./receipt";
 
 describe("assertFinalizedSuccess", () => {
   it("accepts explicit finalized return", () => {
@@ -44,7 +44,7 @@ describe("assertFinalizedSuccess", () => {
     expect(() => assertFinalizedSuccess({ statusName: status })).toThrow(/not FINALIZED/);
   });
 
-  it("rejects finalized execution errors and preserves bigint-safe feedback", () => {
+  it("rejects finalized execution errors without serializing the hostile receipt", () => {
     expect(() =>
       assertFinalizedSuccess({
         statusName: "FINALIZED",
@@ -52,7 +52,22 @@ describe("assertFinalizedSuccess", () => {
         consensus_data: { final: true },
         data: { amount: 9007199254740993n },
       }),
-    ).toThrow(/9007199254740993/);
+    ).toThrow(FinalizedExecutionError);
+  });
+
+  it("decodes the SDK simplified rollback payload without serializing the receipt", () => {
+    expect(() =>
+      assertFinalizedSuccess({
+        status_name: "FINALIZED",
+        consensus_data: {
+          leader_receipt: [{
+            execution_result: "ERROR",
+            result: { status: "rollback", payload: "Freeze requires complete evidence" },
+            node_config: { private_key: "must-never-appear" },
+          }],
+        },
+      }),
+    ).toThrow("Contract execution failed: Freeze requires complete evidence");
   });
 
   it("rejects unknown finalized shapes", () => {

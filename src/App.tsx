@@ -9,7 +9,7 @@ import {
   submitWrite,
   verifyPendingPostcondition,
 } from "./contract";
-import { errorMessage } from "./receipt";
+import { FinalizedExecutionError, errorMessage } from "./receipt";
 import type { EvidenceKind, EvidenceRecord, HexAddress, PendingPostcondition, PendingWrite, Profile, TransactionPhase } from "./types";
 import { connectWallet, discoverWallets, type Eip1193Provider, type WalletOption } from "./wallet";
 
@@ -144,6 +144,10 @@ export default function App() {
       setPhase("complete");
       setNotice("Recovered transaction is FINALIZED, successful, and confirmed by contract readback.");
     } catch (error) {
+      if (error instanceof FinalizedExecutionError) {
+        clearPendingWrite();
+        setPending(undefined);
+      }
       setPhase("error");
       setNotice(errorMessage(error));
     } finally {
@@ -219,6 +223,13 @@ export default function App() {
     } catch (error) {
       const intent = getPendingWrite();
       setPending(intent);
+      if (error instanceof FinalizedExecutionError) {
+        clearPendingWrite();
+        setPending(undefined);
+        setPhase("error");
+        setNotice(error.message);
+        return;
+      }
       if (intent) {
         try {
           setPhase("readback");

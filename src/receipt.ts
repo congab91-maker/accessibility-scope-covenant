@@ -26,6 +26,19 @@ function safeError(value: unknown): string {
   }
 }
 
+export class FinalizedExecutionError extends Error {}
+
+function leaderFailure(item: UnknownRecord): string | undefined {
+  if (text(item.execution_result) !== "ERROR") return undefined;
+  const result = isRecord(item.result) ? item.result : undefined;
+  if (typeof result?.payload === "string" && result.payload) return result.payload;
+  const genvm = isRecord(item.genvm_result) ? item.genvm_result : undefined;
+  for (const value of [genvm?.error_description, genvm?.stderr, genvm?.error_code]) {
+    if (typeof value === "string" && value) return value;
+  }
+  return "Contract execution rolled back";
+}
+
 export function assertFinalizedSuccess(value: unknown): void {
   if (!isRecord(value)) throw new Error("Malformed transaction receipt");
   const status = text(value.statusName) ?? text(value.status_name) ?? text(value.status);
@@ -40,14 +53,16 @@ export function assertFinalizedSuccess(value: unknown): void {
 
   const execution = text(value.txExecutionResultName);
   if (execution === ExecutionResult.FINISHED_WITH_ERROR) {
-    throw new Error(`Contract execution failed: ${safeError(value)}`);
+    throw new FinalizedExecutionError("Contract execution failed");
   }
   if (execution === ExecutionResult.FINISHED_WITH_RETURN) return;
 
   const leaders = leaderReceipts(value);
   if (leaders.some((item) => text(item.execution_result) === "SUCCESS" && !item.error)) return;
+  const failure = leaders.map(leaderFailure).find(Boolean);
+  if (failure) throw new FinalizedExecutionError(`Contract execution failed: ${failure}`);
   const leaderError = leaders.find((item) => item.error)?.error;
-  if (leaderError) throw new Error(`Leader execution failed: ${safeError(leaderError)}`);
+  if (leaderError) throw new FinalizedExecutionError(`Leader execution failed: ${safeError(leaderError)}`);
   throw new Error(`Unknown finalized execution result (${execution ?? "MISSING"})`);
 }
 
