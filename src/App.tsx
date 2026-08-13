@@ -122,7 +122,13 @@ export default function App() {
     setPhase("consensus");
     setNotice(`Reconciling ${intent.label} after reload…`);
     try {
-      const readback = await reconcilePendingWrite(intent, setPhase);
+      let readback;
+      try {
+        setPhase("readback");
+        readback = await verifyPendingPostcondition(intent);
+      } catch {
+        readback = await reconcilePendingWrite(intent, setPhase);
+      }
       setProfileId(readback.profileId);
       setProfile(readback.result.profile);
       setEvidence(readback.result.evidence);
