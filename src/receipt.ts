@@ -34,7 +34,7 @@ export function assertFinalizedSuccess(value: unknown): void {
   }
 
   const consensus = isRecord(value.consensus_data) ? value.consensus_data : undefined;
-  if (consensus && consensus.final !== true) {
+  if (consensus && "final" in consensus && consensus.final !== true) {
     throw new Error("Receipt is FINALIZED but consensus_data.final is not true");
   }
 

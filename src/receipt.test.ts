@@ -17,10 +17,18 @@ describe("assertFinalizedSuccess", () => {
     expect(() =>
       assertFinalizedSuccess({
         status_name: "FINALIZED",
-        txExecutionResultName: "FINISHED_WITH_RETURN",
-        consensus_data: { final: true },
+        consensus_data: { leader_receipt: [{ execution_result: "SUCCESS" }] },
       }),
     ).not.toThrow();
+  });
+
+  it("still rejects an explicit non-final consensus envelope", () => {
+    expect(() =>
+      assertFinalizedSuccess({
+        status_name: "FINALIZED",
+        consensus_data: { final: false, leader_receipt: [{ execution_result: "SUCCESS" }] },
+      }),
+    ).toThrow(/final is not true/);
   });
 
   it("accepts the documented successful leader envelope", () => {
