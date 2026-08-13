@@ -10,6 +10,7 @@ export interface WalletOption {
   id: string;
   name: string;
   icon?: string;
+  rdns?: string;
   provider: Eip1193Provider;
 }
 
@@ -38,11 +39,25 @@ function providerName(provider: Eip1193Provider, index: number): string {
   return `Browser wallet ${index + 1}`;
 }
 
+export function dedupeWalletOptions(options: WalletOption[]): WalletOption[] {
+  const providers = new Set<Eip1193Provider>();
+  const identities = new Set<string>();
+  return options.filter((option) => {
+    const name = option.name.trim().toLowerCase();
+    const identity = option.rdns?.trim().toLowerCase() || name;
+    if (providers.has(option.provider) || identities.has(identity) || identities.has(name)) return false;
+    providers.add(option.provider);
+    identities.add(identity);
+    identities.add(name);
+    return true;
+  });
+}
+
 export async function discoverWallets(waitMs = 260): Promise<WalletOption[]> {
-  const found = new Map<Eip1193Provider, WalletOption>();
+  const found: WalletOption[] = [];
   const announce = (event: WindowEventMap["eip6963:announceProvider"]) => {
     const { info, provider } = event.detail;
-    found.set(provider, { id: info.uuid, name: info.name, icon: info.icon, provider });
+    found.push({ id: info.uuid, name: info.name, icon: info.icon, rdns: info.rdns, provider });
   };
   window.addEventListener("eip6963:announceProvider", announce);
   window.dispatchEvent(new Event("eip6963:requestProvider"));
@@ -51,9 +66,9 @@ export async function discoverWallets(waitMs = 260): Promise<WalletOption[]> {
 
   const legacy = window.ethereum?.providers?.length ? window.ethereum.providers : window.ethereum ? [window.ethereum] : [];
   legacy.forEach((provider, index) => {
-    if (!found.has(provider)) found.set(provider, { id: `legacy-${index}`, name: providerName(provider, index), provider });
+    found.push({ id: `legacy-${index}`, name: providerName(provider, index), provider });
   });
-  return [...found.values()];
+  return dedupeWalletOptions(found);
 }
 
 function isAddress(value: unknown): value is HexAddress {
