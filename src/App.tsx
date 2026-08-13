@@ -3,14 +3,14 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   STUDIONET_EXPLORER,
   clearPendingWrite,
-  findProfileId,
   getPendingWrite,
   loadProfile,
+  reconcilePendingWrite,
   submitWrite,
-  waitForFinalized,
+  verifyPendingPostcondition,
 } from "./contract";
 import { errorMessage } from "./receipt";
-import type { EvidenceKind, EvidenceRecord, HexAddress, PendingWrite, Profile, TransactionPhase } from "./types";
+import type { EvidenceKind, EvidenceRecord, HexAddress, PendingPostcondition, PendingWrite, Profile, TransactionPhase } from "./types";
 import { connectWallet, discoverWallets, type Eip1193Provider, type WalletOption } from "./wallet";
 
 const phaseCopy: Record<TransactionPhase, string> = {
@@ -113,11 +113,11 @@ export default function App() {
     setPhase("consensus");
     setNotice(`Reconciling ${intent.label} after reload…`);
     try {
-      await waitForFinalized(intent.hash, setPhase);
-      setPhase("readback");
-      let id = intent.profileId;
-      if (!id && intent.clientRef && account) id = await findProfileId(account, intent.clientRef);
-      if (id) await refresh(id);
+      const readback = await reconcilePendingWrite(intent, setPhase);
+      setProfileId(readback.profileId);
+      setProfile(readback.result.profile);
+      setEvidence(readback.result.evidence);
+      setAssessment(readback.result.assessment);
       clearPendingWrite();
       setPending(undefined);
       setPhase("complete");
@@ -164,10 +164,7 @@ export default function App() {
     functionName: string;
     callArgs: Array<string | bigint>;
     label: string;
-    targetId?: number;
-    clientRef?: string;
-    resolveId?: boolean;
-    verify: (result: Awaited<ReturnType<typeof loadProfile>>) => boolean;
+    postcondition: PendingPostcondition;
   }) {
     if (!account || !provider) {
       setPhase("error");
@@ -183,15 +180,17 @@ export default function App() {
         functionName: input.functionName,
         callArgs: input.callArgs,
         label: input.label,
-        profileId: input.targetId,
-        clientRef: input.clientRef,
+        postcondition: input.postcondition,
         onPhase: setPhase,
       });
-      setPending(getPendingWrite());
-      const id = input.resolveId && input.clientRef ? await findProfileId(account, input.clientRef) : input.targetId;
-      if (!id) throw new Error("The write finalized but its profile ID could not be reconciled");
-      const result = await refresh(id);
-      if (!input.verify(result)) throw new Error("Authoritative readback did not satisfy the expected postcondition");
+      const intent = getPendingWrite();
+      if (!intent) throw new Error("The finalized write has no recoverable pending intent");
+      setPending(intent);
+      const readback = await verifyPendingPostcondition(intent);
+      setProfileId(readback.profileId);
+      setProfile(readback.result.profile);
+      setEvidence(readback.result.evidence);
+      setAssessment(readback.result.assessment);
       clearPendingWrite();
       setPending(undefined);
       setPhase("complete");
@@ -207,15 +206,23 @@ export default function App() {
 
   async function createProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!account) {
+      setPhase("error");
+      setNotice("Connect a wallet through the provider selector first");
+      return;
+    }
     const data = new FormData(event.currentTarget);
     const clientRef = String(data.get("client_ref")).trim();
+    const productName = String(data.get("product_name")).trim();
+    const version = String(data.get("version")).trim();
+    const claimText = String(data.get("claim_text")).trim();
+    const claimUrl = new URL(String(data.get("claim_url")));
+    claimUrl.hash = "";
     await execute({
       functionName: "create_profile",
-      callArgs: [clientRef, String(data.get("product_name")), String(data.get("version")), String(data.get("claim_text")), String(data.get("claim_url"))],
+      callArgs: [clientRef, productName, version, claimText, claimUrl.href],
       label: "Register covenant",
-      clientRef,
-      resolveId: true,
-      verify: (result) => result.profile.client_ref === clientRef,
+      postcondition: { kind: "create_profile", owner: account, clientRef, productName, version, claimText, claimUrl: claimUrl.href },
     });
   }
 
@@ -230,8 +237,7 @@ export default function App() {
       functionName: "add_evidence",
       callArgs: [BigInt(profile.id), kind, evidenceUrl.href],
       label: "Add frozen-scope evidence",
-      targetId: profile.id,
-      verify: (result) => result.evidence.some((item) => item.kind === kind && item.url === evidenceUrl.href),
+      postcondition: { kind: "add_evidence", profileId: profile.id, evidence: { kind: kind as EvidenceKind, url: evidenceUrl.href } },
     });
     event.currentTarget.reset();
   }
@@ -307,8 +313,8 @@ export default function App() {
 
                 <section className="panel action-panel">
                   <p className="section-label">State action</p>
-                  {profile.state === "DRAFT" && <><h3>Freeze the evidence set</h3><p>Requires exactly one HTML/OpenACR source, one version page and 3–5 public journey pages.</p><button className="button primary" disabled={busy || !account} onClick={() => execute({ functionName: "freeze_profile", callArgs: [BigInt(profile.id)], label: "Freeze covenant", targetId: profile.id, verify: (result) => result.profile.state === "FROZEN" })}>Freeze covenant</button></>}
-                  {(profile.state === "FROZEN" || profile.state === "UNRESOLVED") && <><h3>{profile.state === "UNRESOLVED" ? "Retry bounded assessment" : "Run consensus assessment"}</h3><p>Validators independently retrieve the same frozen sources and compare stable decision fields.</p><button className="button primary" disabled={busy || !account || profile.attempts >= 3} onClick={() => execute({ functionName: "assess_scope", callArgs: [BigInt(profile.id)], label: "Assess accessibility scope", targetId: profile.id, verify: (result) => Boolean(result.assessment) && result.profile.attempts === profile.attempts + 1 && ["ALIGNED", "REVIEW_REQUIRED", "UNRESOLVED"].includes(result.profile.state) })}>{profile.state === "UNRESOLVED" ? "Retry assessment" : "Assess scope"}</button></>}
+                  {profile.state === "DRAFT" && <><h3>Freeze the evidence set</h3><p>Requires exactly one HTML/OpenACR source, one version page and 3–5 public journey pages.</p><button className="button primary" disabled={busy || !account} onClick={() => execute({ functionName: "freeze_profile", callArgs: [BigInt(profile.id)], label: "Freeze covenant", postcondition: { kind: "freeze_profile", profileId: profile.id } })}>Freeze covenant</button></>}
+                  {(profile.state === "FROZEN" || profile.state === "UNRESOLVED") && <><h3>{profile.state === "UNRESOLVED" ? "Retry bounded assessment" : "Run consensus assessment"}</h3><p>Validators independently retrieve the same frozen sources and compare stable decision fields.</p><button className="button primary" disabled={busy || !account || profile.attempts >= 3} onClick={() => execute({ functionName: "assess_scope", callArgs: [BigInt(profile.id)], label: "Assess accessibility scope", postcondition: { kind: "assess_scope", profileId: profile.id, previousAttempts: profile.attempts } })}>{profile.state === "UNRESOLVED" ? "Retry assessment" : "Assess scope"}</button></>}
                   {["ALIGNED", "REVIEW_REQUIRED", "SUPERSEDED"].includes(profile.state) && <><h3>Assessment is immutable</h3><p>Create a new version-bound covenant and link it through supersession when the public claim or product version changes.</p></>}
                 </section>
 
@@ -319,7 +325,7 @@ export default function App() {
 
                 <section className="panel supersede-panel">
                   <p className="section-label">Version lineage</p><h3>Supersede this covenant</h3><p>Both records must share the same product identity and already be frozen or assessed.</p>
-                  <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", targetId: profile.id, verify: (result) => result.profile.state === "SUPERSEDED" && result.profile.superseded_by === newId }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !account}>Link</button></form>
+                  <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", postcondition: { kind: "supersede_profile", oldProfileId: profile.id, newProfileId: newId } }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !account}>Link</button></form>
                 </section>
               </div>
             )}

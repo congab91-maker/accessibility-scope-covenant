@@ -42,11 +42,17 @@ export interface Assessment {
   source_digest_set: string[];
 }
 
+export type PendingPostcondition =
+  | { kind: "create_profile"; owner: HexAddress; clientRef: string; productName: string; version: string; claimText: string; claimUrl: string }
+  | { kind: "add_evidence"; profileId: number; evidence: EvidenceRecord }
+  | { kind: "freeze_profile"; profileId: number }
+  | { kind: "assess_scope"; profileId: number; previousAttempts: number }
+  | { kind: "supersede_profile"; oldProfileId: number; newProfileId: number };
+
 export interface PendingWrite {
   hash: `0x${string}` & { length: 66 };
   label: string;
-  profileId?: number;
-  clientRef?: string;
+  postcondition: PendingPostcondition;
   submittedAt: string;
 }
 

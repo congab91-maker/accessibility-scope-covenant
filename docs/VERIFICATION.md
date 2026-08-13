@@ -14,7 +14,7 @@ The Studio network selector was visibly verified as `GenLayer Studio` before thi
 
 ## Toolchain provenance
 
-No package or tool was downloaded or installed for this Task. The project reuses the already-complete dependency set at `E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\frontend\node_modules` through a project-local junction. Its full dependency tree passed `npm ls --all`. The package lock was resolved offline. GenVM uses the existing runner `E:\Genlayer-Tools\GenVM\v0.3.0-rc7`; Python uses the already-installed Python 3.13 runtime.
+No package or tool was downloaded or installed for this Task. The project reuses the already-complete dependency set at `E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\frontend\node_modules` through a project-local junction. The dependency store itself passes `npm ls --all` with exit code `0` when checked at its owning package root, `E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\frontend`. Running `npm ls` from this project is not a valid closure check for that external junction and returns exit code `1`; no clean project-local install is claimed. The committed package lock records exact requested versions, but an offline clean install was not performed or claimed. GenVM uses the existing runner `E:\Genlayer-Tools\GenVM\v0.3.0-rc7`; Python uses the already-installed Python 3.13 runtime.
 
 ## Verified commands
 
@@ -27,18 +27,21 @@ genvm-lint check contracts\accessibility_scope_covenant.py --json
 ok=true; lint=3 passed; validate=true; contract=AccessibilityScopeCovenant; methods=13; views=7; writes=6
 
 npm test
-12 passed
+18 passed
 
 npm run build
 passed
 ```
 
-The only build advisory is a Vite bundle-size warning caused principally by the required GenLayer SDK. It does not affect correctness; no new dependency was added to suppress it.
+Two advisories are reviewed:
+
+- Vite reports a bundle-size advisory caused principally by the required GenLayer SDK. It does not affect correctness; no dependency was added merely to suppress it.
+- GenVM reports `I200`, advertising py-genlayer runner `1zr6nqk597d97kg0dyxg0shhrykx5v02zjgnyrajapy4wlqvfvwh` as newer than the pinned `1jb45aa8ynh2a9c9xn3b7qqh8sm5q93hwfp7jqmwsfhh8jpz09h6`. The current official `genlayerlabs/genvm` release list identifies `v0.3.0-rc7` as latest, and the downloaded official rc7 archive contains the pinned `1jb45...` package. The contract therefore remains pinned to the package actually bundled and fully validated by the latest released runner available on this machine. The unbundled advisory hash is not adopted before deployment merely to silence a warning; Studio compilation and the later deployed-source parity check remain mandatory live confirmation.
 
 ## Test coverage summary
 
 - Contract: profile lifecycle, URL rejection, exact freeze covenant, idempotency, every verdict/consequence, fail-closed retrieval, bounded retry, schema-valid leader disagreement, contradictory flags, supersession, absence of a verdict setter, untrusted prompt injection, Root Slot registration, authorized upgrade/storage preservation, and unauthorized upgrade/no code change.
-- Frontend: receipt finality/leader success boundaries, bigint-safe parsing, runtime contract-response validation, safe identifiers, and method-specific readback behavior.
+- Frontend: receipt finality/leader success boundaries, bigint-safe parsing, runtime contract-response validation, safe identifiers, and method-specific readback behavior. Restart reconciliation tests cover create (without a connected wallet), evidence, freeze, assessment, both sides of supersession, delayed readback, mismatch, and duplicate reconciliation. Pending intent is retained unless the exact postcondition verifies.
 - Browser: explicit provider selector and cancel behavior; no supported-provider fallback; no console errors; no unsafe links; no horizontal overflow or viewport escape at widths 320, 375, 414, 768, and 1280.
 
 ## Pre-deployment recovery plan

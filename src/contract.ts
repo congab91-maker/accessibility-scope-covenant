@@ -4,11 +4,11 @@ import { TransactionStatus } from "genlayer-js/types";
 
 import { assertFinalizedSuccess } from "./receipt";
 import type { Eip1193Provider } from "./wallet";
-import type { Assessment, EvidenceRecord, HexAddress, PendingWrite, Profile, TransactionPhase } from "./types";
+import type { Assessment, EvidenceRecord, HexAddress, PendingPostcondition, PendingWrite, Profile, TransactionPhase } from "./types";
 
 export const STUDIONET_RPC = "https://studio.genlayer.com/api";
 export const STUDIONET_EXPLORER = "https://explorer-studio.genlayer.com";
-const PENDING_KEY = "asc:pending-write:v1";
+const PENDING_KEY = "asc:pending-write:v2";
 
 export const readClient = createClient({ chain: studionet, endpoint: STUDIONET_RPC });
 
@@ -180,17 +180,49 @@ export async function findProfileId(owner: HexAddress, clientRef: string): Promi
   return id;
 }
 
+function positiveInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0;
+}
+
+function parsePostcondition(value: unknown): PendingPostcondition | undefined {
+  if (!isRecord(value) || typeof value.kind !== "string") return undefined;
+  switch (value.kind) {
+    case "create_profile":
+      if (!isHexAddress(value.owner) || typeof value.clientRef !== "string" || typeof value.productName !== "string"
+        || typeof value.version !== "string" || typeof value.claimText !== "string" || typeof value.claimUrl !== "string") return undefined;
+      return { kind: value.kind, owner: value.owner, clientRef: value.clientRef, productName: value.productName, version: value.version, claimText: value.claimText, claimUrl: value.claimUrl };
+    case "add_evidence":
+      if (!positiveInteger(value.profileId) || !isRecord(value.evidence)
+        || typeof value.evidence.kind !== "string" || typeof value.evidence.url !== "string") return undefined;
+      try {
+        return { kind: value.kind, profileId: value.profileId, evidence: { kind: evidenceKind(value.evidence.kind), url: value.evidence.url } };
+      } catch {
+        return undefined;
+      }
+    case "freeze_profile":
+      return positiveInteger(value.profileId) ? { kind: value.kind, profileId: value.profileId } : undefined;
+    case "assess_scope":
+      return positiveInteger(value.profileId) && typeof value.previousAttempts === "number" && Number.isSafeInteger(value.previousAttempts) && value.previousAttempts >= 0
+        ? { kind: value.kind, profileId: value.profileId, previousAttempts: value.previousAttempts }
+        : undefined;
+    case "supersede_profile":
+      return positiveInteger(value.oldProfileId) && positiveInteger(value.newProfileId)
+        ? { kind: value.kind, oldProfileId: value.oldProfileId, newProfileId: value.newProfileId }
+        : undefined;
+    default:
+      return undefined;
+  }
+}
+
 export function getPendingWrite(): PendingWrite | undefined {
   const raw = localStorage.getItem(PENDING_KEY);
   if (!raw) return undefined;
   try {
     const value: unknown = JSON.parse(raw);
     if (!isRecord(value) || !isTransactionHash(value.hash)) return undefined;
-    if (typeof value.label !== "string" || typeof value.submittedAt !== "string") return undefined;
-    const result: PendingWrite = { hash: value.hash, label: value.label, submittedAt: value.submittedAt };
-    if (typeof value.profileId === "number" && Number.isSafeInteger(value.profileId)) result.profileId = value.profileId;
-    if (typeof value.clientRef === "string") result.clientRef = value.clientRef;
-    return result;
+    const postcondition = parsePostcondition(value.postcondition);
+    if (typeof value.label !== "string" || typeof value.submittedAt !== "string" || !postcondition) return undefined;
+    return { hash: value.hash, label: value.label, postcondition, submittedAt: value.submittedAt };
   } catch {
     return undefined;
   }
@@ -214,14 +246,73 @@ export async function waitForFinalized(
   assertFinalizedSuccess(receipt);
 }
 
+type LoadedProfile = Awaited<ReturnType<typeof loadProfile>>;
+type ReadbackDependencies = {
+  load: typeof loadProfile;
+  find: typeof findProfileId;
+};
+
+export async function verifyPendingPostcondition(
+  intent: PendingWrite,
+  dependencies: ReadbackDependencies = { load: loadProfile, find: findProfileId },
+): Promise<{ profileId: number; result: LoadedProfile }> {
+  const expected = intent.postcondition;
+  let profileId: number;
+  if (expected.kind === "create_profile") {
+    profileId = await dependencies.find(expected.owner, expected.clientRef);
+  } else if (expected.kind === "supersede_profile") {
+    profileId = expected.oldProfileId;
+  } else {
+    profileId = expected.profileId;
+  }
+  const result = await dependencies.load(profileId);
+  let verified = false;
+  switch (expected.kind) {
+    case "create_profile":
+      verified = result.profile.client_ref === expected.clientRef
+        && result.profile.owner.toLowerCase() === expected.owner.toLowerCase()
+        && result.profile.product_name === expected.productName
+        && result.profile.version === expected.version
+        && result.profile.claim_text === expected.claimText
+        && result.profile.claim_url === expected.claimUrl;
+      break;
+    case "add_evidence":
+      verified = result.evidence.some((item) => item.kind === expected.evidence.kind && item.url === expected.evidence.url);
+      break;
+    case "freeze_profile":
+      verified = result.profile.state !== "DRAFT";
+      break;
+    case "assess_scope":
+      verified = result.profile.attempts >= expected.previousAttempts + 1 && Boolean(result.assessment);
+      break;
+    case "supersede_profile": {
+      const successor = await dependencies.load(expected.newProfileId);
+      verified = result.profile.state === "SUPERSEDED" && result.profile.superseded_by === expected.newProfileId
+        && successor.profile.supersedes === expected.oldProfileId;
+      break;
+    }
+  }
+  if (!verified) throw new Error("Authoritative readback did not satisfy the pending write postcondition");
+  return { profileId, result };
+}
+
+export async function reconcilePendingWrite(
+  intent: PendingWrite,
+  onPhase: (phase: TransactionPhase) => void,
+  dependencies: ReadbackDependencies & { wait: typeof waitForFinalized } = { load: loadProfile, find: findProfileId, wait: waitForFinalized },
+): Promise<{ profileId: number; result: LoadedProfile }> {
+  await dependencies.wait(intent.hash, onPhase);
+  onPhase("readback");
+  return verifyPendingPostcondition(intent, dependencies);
+}
+
 export async function submitWrite(args: {
   account: HexAddress;
   provider: Eip1193Provider;
   functionName: string;
   callArgs: Array<string | bigint>;
   label: string;
-  profileId?: number;
-  clientRef?: string;
+  postcondition: PendingPostcondition;
   onPhase: (phase: TransactionPhase) => void;
 }): Promise<`0x${string}`> {
   args.onPhase("signature");
@@ -236,7 +327,7 @@ export async function submitWrite(args: {
   const hash = value;
   localStorage.setItem(
     PENDING_KEY,
-    JSON.stringify({ hash, label: args.label, profileId: args.profileId, clientRef: args.clientRef, submittedAt: new Date().toISOString() }),
+    JSON.stringify({ hash, label: args.label, postcondition: args.postcondition, submittedAt: new Date().toISOString() }),
   );
   args.onPhase("submitted");
   await waitForFinalized(hash, args.onPhase);
