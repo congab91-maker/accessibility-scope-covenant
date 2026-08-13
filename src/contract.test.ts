@@ -34,9 +34,17 @@ const assessment: Assessment = {
 };
 
 const hash = `0x${"a".repeat(64)}` as NonNullable<PendingWrite["hash"]>;
+const actor = "0x1111111111111111111111111111111111111111" as const;
 const phases: string[] = [];
 const wait = async (_hash: NonNullable<PendingWrite["hash"]>, onPhase: (phase: "idle" | "signature" | "submitted" | "consensus" | "readback" | "complete" | "error") => void) => onPhase("consensus");
-const intent = (postcondition: PendingWrite["postcondition"]): PendingWrite => ({ hash, label: "test", postcondition, submittedAt: "2026-08-13T00:00:00Z" });
+const intent = (postcondition: PendingWrite["postcondition"]): PendingWrite => {
+  const baseline: PendingWrite["baseline"] = postcondition.kind === "create_profile" ? { kind: postcondition.kind, profileId: 0 }
+    : postcondition.kind === "add_evidence" ? { kind: postcondition.kind, evidenceCount: 0, exactExists: false }
+    : postcondition.kind === "freeze_profile" ? { kind: postcondition.kind, state: "DRAFT" }
+    : postcondition.kind === "assess_scope" ? { kind: postcondition.kind, attempts: postcondition.previousAttempts }
+    : { kind: postcondition.kind, oldState: "FROZEN", oldSupersededBy: 0, newSupersedes: 0 };
+  return { hash, actor, label: "test", postcondition, baseline, submittedAt: "2026-08-13T00:00:00Z" };
+};
 const loaded = (changes: Partial<Profile> = {}, evidence: Array<{ kind: "acr_html"; url: string }> = []) => ({ profile: { ...profile, ...changes }, evidence, assessment: undefined });
 
 describe("contract response boundaries", () => {
@@ -72,7 +80,7 @@ describe("contract response boundaries", () => {
 });
 
 describe("restart-safe method-specific reconciliation", () => {
-  it("recovers a hashless pre-sign journal from exact authoritative readback", async () => {
+  it("recovers a hashless journal only from a new transition after its baseline", async () => {
     const pending: PendingWrite = { ...intent({ kind: "freeze_profile", profileId: 1 }), hash: undefined };
     let waited = false;
     const result = await reconcilePendingWrite(pending, () => undefined, {
@@ -82,6 +90,28 @@ describe("restart-safe method-specific reconciliation", () => {
     });
     expect(result.profileId).toBe(1);
     expect(waited).toBe(false);
+  });
+
+  it("rejects hashless no-broadcast and pre-existing idempotent state", async () => {
+    const pending: PendingWrite = { ...intent({ kind: "freeze_profile", profileId: 1 }), hash: undefined };
+    const dependencies = { wait, find: async () => 1, load: async () => loaded({ state: "DRAFT" }) };
+    await expect(reconcilePendingWrite(pending, () => undefined, dependencies)).rejects.toThrow(/postcondition/);
+
+    const preExisting: PendingWrite = { ...pending, baseline: { kind: "freeze_profile", state: "FROZEN" } };
+    await expect(reconcilePendingWrite(preExisting, () => undefined, { ...dependencies, load: async () => loaded({ state: "FROZEN" }) }))
+      .rejects.toThrow(/new transition/);
+  });
+
+  it("never bypasses a known rejected or finalized-error receipt with matching readback", async () => {
+    const pending = intent({ kind: "freeze_profile", profileId: 1 });
+    let loadedAfterFailure = false;
+    const dependencies = {
+      wait: async () => { throw new Error("FINALIZED / ERROR"); },
+      find: async () => 1,
+      load: async () => { loadedAfterFailure = true; return loaded({ state: "FROZEN" }); },
+    };
+    await expect(reconcilePendingWrite(pending, () => undefined, dependencies)).rejects.toThrow(/FINALIZED \/ ERROR/);
+    expect(loadedAfterFailure).toBe(false);
   });
 
   it("reconciles create_profile without a connected account and verifies the exact intent", async () => {

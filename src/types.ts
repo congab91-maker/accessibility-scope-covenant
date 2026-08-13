@@ -49,10 +49,19 @@ export type PendingPostcondition =
   | { kind: "assess_scope"; profileId: number; previousAttempts: number }
   | { kind: "supersede_profile"; oldProfileId: number; newProfileId: number };
 
+export type PendingBaseline =
+  | { kind: "create_profile"; profileId: number }
+  | { kind: "add_evidence"; evidenceCount: number; exactExists: boolean }
+  | { kind: "freeze_profile"; state: Profile["state"] }
+  | { kind: "assess_scope"; attempts: number }
+  | { kind: "supersede_profile"; oldState: Profile["state"]; oldSupersededBy: number; newSupersedes: number };
+
 export interface PendingWrite {
   hash?: `0x${string}` & { length: 66 };
+  actor: HexAddress;
   label: string;
   postcondition: PendingPostcondition;
+  baseline: PendingBaseline;
   submittedAt: string;
 }
 

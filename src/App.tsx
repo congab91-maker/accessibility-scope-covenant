@@ -122,13 +122,7 @@ export default function App() {
     setPhase("consensus");
     setNotice(`Reconciling ${intent.label} after reload…`);
     try {
-      let readback;
-      try {
-        setPhase("readback");
-        readback = await verifyPendingPostcondition(intent);
-      } catch {
-        readback = await reconcilePendingWrite(intent, setPhase);
-      }
+      const readback = await reconcilePendingWrite(intent, setPhase);
       setProfileId(readback.profileId);
       setProfile(readback.result.profile);
       setEvidence(readback.result.evidence);
@@ -217,7 +211,7 @@ export default function App() {
         try {
           setPhase("readback");
           setNotice(`${input.label}: wallet result was ambiguous; checking contract state…`);
-          const readback = await verifyPendingPostcondition(intent);
+          const readback = await reconcilePendingWrite(intent, setPhase);
           setProfileId(readback.profileId);
           setProfile(readback.result.profile);
           setEvidence(readback.result.evidence);

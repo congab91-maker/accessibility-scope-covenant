@@ -4,11 +4,11 @@ import { TransactionStatus } from "genlayer-js/types";
 
 import { assertFinalizedSuccess } from "./receipt";
 import type { Eip1193Provider } from "./wallet";
-import type { Assessment, EvidenceRecord, HexAddress, PendingPostcondition, PendingWrite, Profile, TransactionPhase } from "./types";
+import type { Assessment, EvidenceRecord, HexAddress, PendingBaseline, PendingPostcondition, PendingWrite, Profile, TransactionPhase } from "./types";
 
 export const STUDIONET_RPC = "https://studio.genlayer.com/api";
 export const STUDIONET_EXPLORER = "https://explorer-studio.genlayer.com";
-const PENDING_KEY = "asc:pending-write:v2";
+const PENDING_KEY = "asc:pending-write:v3";
 
 export const readClient = createClient({ chain: studionet, endpoint: STUDIONET_RPC });
 
@@ -141,6 +141,12 @@ export function parseAssessment(value: unknown): Assessment | undefined {
   };
 }
 
+async function readProfile(profileId: number): Promise<Profile> {
+  const raw = await readClient.readContract({ address: contractAddress(), functionName: "get_profile", args: [idArgument(profileId)] });
+  if (raw === "") throw new Error("Profile does not exist");
+  return parseProfile(raw);
+}
+
 function contractAddress(): HexAddress {
   const value = import.meta.env.VITE_CONTRACT_ADDRESS;
   if (!isHexAddress(value)) throw new Error("Contract is not deployed/configured yet");
@@ -154,9 +160,7 @@ function idArgument(profileId: number): bigint {
 
 export async function loadProfile(profileId: number): Promise<{ profile: Profile; evidence: EvidenceRecord[]; assessment?: Assessment }> {
   const address = contractAddress();
-  const rawProfile = await readClient.readContract({ address, functionName: "get_profile", args: [idArgument(profileId)] });
-  if (rawProfile === "") throw new Error("Profile does not exist");
-  const profile = parseProfile(rawProfile);
+  const profile = await readProfile(profileId);
   const countValue = await readClient.readContract({ address, functionName: "get_evidence_count", args: [idArgument(profileId)] });
   const count = typeof countValue === "bigint" ? Number(countValue) : typeof countValue === "number" ? countValue : Number.NaN;
   if (!Number.isSafeInteger(count) || count < 0 || count > 8) throw new Error("Contract returned an invalid evidence count");
@@ -169,14 +173,20 @@ export async function loadProfile(profileId: number): Promise<{ profile: Profile
   return { profile, evidence: rawEvidence.map(parseEvidence), assessment: parseAssessment(rawAssessment) };
 }
 
-export async function findProfileId(owner: HexAddress, clientRef: string): Promise<number> {
+async function lookupProfileId(owner: HexAddress, clientRef: string): Promise<number> {
   const value = await readClient.readContract({
     address: contractAddress(),
     functionName: "get_profile_by_client_ref",
     args: [owner, clientRef],
   });
   const id = typeof value === "bigint" ? Number(value) : typeof value === "number" ? value : Number.NaN;
-  if (!Number.isSafeInteger(id) || id <= 0) throw new Error("Authoritative profile readback was not available");
+  if (!Number.isSafeInteger(id) || id < 0) throw new Error("Authoritative profile lookup was invalid");
+  return id;
+}
+
+export async function findProfileId(owner: HexAddress, clientRef: string): Promise<number> {
+  const id = await lookupProfileId(owner, clientRef);
+  if (id <= 0) throw new Error("Authoritative profile readback was not available");
   return id;
 }
 
@@ -214,15 +224,47 @@ function parsePostcondition(value: unknown): PendingPostcondition | undefined {
   }
 }
 
+function nonNegativeInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0;
+}
+
+function parseBaseline(value: unknown, expected: PendingPostcondition): PendingBaseline | undefined {
+  if (!isRecord(value) || value.kind !== expected.kind) return undefined;
+  switch (expected.kind) {
+    case "create_profile":
+      return nonNegativeInteger(value.profileId) ? { kind: expected.kind, profileId: value.profileId } : undefined;
+    case "add_evidence":
+      return nonNegativeInteger(value.evidenceCount) && typeof value.exactExists === "boolean"
+        ? { kind: expected.kind, evidenceCount: value.evidenceCount, exactExists: value.exactExists }
+        : undefined;
+    case "freeze_profile":
+      try {
+        return typeof value.state === "string" ? { kind: expected.kind, state: profileState(value.state) } : undefined;
+      } catch {
+        return undefined;
+      }
+    case "assess_scope":
+      return nonNegativeInteger(value.attempts) ? { kind: expected.kind, attempts: value.attempts } : undefined;
+    case "supersede_profile":
+      if (typeof value.oldState !== "string" || !nonNegativeInteger(value.oldSupersededBy) || !nonNegativeInteger(value.newSupersedes)) return undefined;
+      try {
+        return { kind: expected.kind, oldState: profileState(value.oldState), oldSupersededBy: value.oldSupersededBy, newSupersedes: value.newSupersedes };
+      } catch {
+        return undefined;
+      }
+  }
+}
+
 export function getPendingWrite(): PendingWrite | undefined {
   const raw = localStorage.getItem(PENDING_KEY);
   if (!raw) return undefined;
   try {
     const value: unknown = JSON.parse(raw);
-    if (!isRecord(value) || (value.hash !== undefined && !isTransactionHash(value.hash))) return undefined;
+    if (!isRecord(value) || !isHexAddress(value.actor) || (value.hash !== undefined && !isTransactionHash(value.hash))) return undefined;
     const postcondition = parsePostcondition(value.postcondition);
-    if (typeof value.label !== "string" || typeof value.submittedAt !== "string" || !postcondition) return undefined;
-    return { hash: value.hash, label: value.label, postcondition, submittedAt: value.submittedAt };
+    const baseline = postcondition ? parseBaseline(value.baseline, postcondition) : undefined;
+    if (typeof value.label !== "string" || typeof value.submittedAt !== "string" || !postcondition || !baseline) return undefined;
+    return { hash: value.hash, actor: value.actor, label: value.label, postcondition, baseline, submittedAt: value.submittedAt };
   } catch {
     return undefined;
   }
@@ -277,6 +319,40 @@ type ReadbackDependencies = {
   find: typeof findProfileId;
 };
 
+async function capturePendingBaseline(postcondition: PendingPostcondition, actor: HexAddress): Promise<PendingBaseline> {
+  if (postcondition.kind === "create_profile") {
+    if (postcondition.owner.toLowerCase() !== actor.toLowerCase()) throw new Error("Connected wallet does not match the profile owner");
+    return { kind: postcondition.kind, profileId: await lookupProfileId(actor, postcondition.clientRef) };
+  }
+  const profileId = postcondition.kind === "supersede_profile" ? postcondition.oldProfileId : postcondition.profileId;
+  const currentProfile = await readProfile(profileId);
+  if (currentProfile.owner.toLowerCase() !== actor.toLowerCase()) throw new Error("Connected wallet does not own this covenant");
+  switch (postcondition.kind) {
+    case "add_evidence": {
+      const current = await loadProfile(postcondition.profileId);
+      return {
+        kind: postcondition.kind,
+        evidenceCount: current.evidence.length,
+        exactExists: current.evidence.some((item) => item.kind === postcondition.evidence.kind && item.url === postcondition.evidence.url),
+      };
+    }
+    case "freeze_profile":
+      return { kind: postcondition.kind, state: currentProfile.state };
+    case "assess_scope":
+      return { kind: postcondition.kind, attempts: currentProfile.attempts };
+    case "supersede_profile": {
+      const successor = await readProfile(postcondition.newProfileId);
+      if (successor.owner.toLowerCase() !== actor.toLowerCase()) throw new Error("Connected wallet does not own the successor covenant");
+      return {
+        kind: postcondition.kind,
+        oldState: currentProfile.state,
+        oldSupersededBy: currentProfile.superseded_by,
+        newSupersedes: successor.supersedes,
+      };
+    }
+  }
+}
+
 export async function verifyPendingPostcondition(
   intent: PendingWrite,
   dependencies: ReadbackDependencies = { load: loadProfile, find: findProfileId },
@@ -326,9 +402,42 @@ export async function reconcilePendingWrite(
   onPhase: (phase: TransactionPhase) => void,
   dependencies: ReadbackDependencies & { wait: typeof waitForFinalized } = { load: loadProfile, find: findProfileId, wait: waitForFinalized },
 ): Promise<{ profileId: number; result: LoadedProfile }> {
-  if (intent.hash) await dependencies.wait(intent.hash, onPhase);
+  if (intent.hash) {
+    await dependencies.wait(intent.hash, onPhase);
+  }
   onPhase("readback");
-  return verifyPendingPostcondition(intent, dependencies);
+  const readback = await verifyPendingPostcondition(intent, dependencies);
+  if (readback.result.profile.owner.toLowerCase() !== intent.actor.toLowerCase()) {
+    throw new Error("Authoritative readback owner does not match the pending actor");
+  }
+  if (!intent.hash) {
+    const baseline = intent.baseline;
+    const expected = intent.postcondition;
+    let transitioned = false;
+    switch (expected.kind) {
+      case "create_profile":
+        transitioned = baseline.kind === expected.kind && baseline.profileId === 0;
+        break;
+      case "add_evidence":
+        transitioned = baseline.kind === expected.kind && !baseline.exactExists && readback.result.evidence.length > baseline.evidenceCount;
+        break;
+      case "freeze_profile":
+        transitioned = baseline.kind === expected.kind && baseline.state === "DRAFT" && readback.result.profile.state !== "DRAFT";
+        break;
+      case "assess_scope":
+        transitioned = baseline.kind === expected.kind && readback.result.profile.attempts > baseline.attempts;
+        break;
+      case "supersede_profile": {
+        const successor = await dependencies.load(expected.newProfileId);
+        transitioned = baseline.kind === expected.kind
+          && baseline.oldState !== "SUPERSEDED" && baseline.oldSupersededBy === 0 && baseline.newSupersedes === 0
+          && successor.profile.owner.toLowerCase() === intent.actor.toLowerCase();
+        break;
+      }
+    }
+    if (!transitioned) throw new Error("Hashless recovery did not prove a new transition from the pre-write baseline");
+  }
+  return readback;
 }
 
 export async function submitWrite(args: {
@@ -340,8 +449,9 @@ export async function submitWrite(args: {
   postcondition: PendingPostcondition;
   onPhase: (phase: TransactionPhase) => void;
 }): Promise<`0x${string}`> {
+  const baseline = await capturePendingBaseline(args.postcondition, args.account);
   args.onPhase("signature");
-  const journal = { label: args.label, postcondition: args.postcondition, submittedAt: new Date().toISOString() };
+  const journal = { actor: args.account, label: args.label, postcondition: args.postcondition, baseline, submittedAt: new Date().toISOString() };
   localStorage.setItem(PENDING_KEY, JSON.stringify(journal));
   const client = createClient({ chain: studionet, endpoint: STUDIONET_RPC, account: args.account, provider: args.provider });
   let value: unknown;
