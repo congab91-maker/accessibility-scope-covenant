@@ -1,6 +1,6 @@
 # Verification record
 
-Checkpoint target: `POST_DEPLOY_TEST` package (`READY FOR ANONYMOUS REVIEW`; approval not yet granted)
+Checkpoint target: final public release package (`POST_GITHUB_VERCEL_FINAL` pending)
 
 Network target: GenLayer Studionet, chain ID `61999` (`0xf22f`)
 
@@ -12,7 +12,9 @@ Canonical contract: `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`
 
 Deployment transaction: `0x8add8f28275136ec6604be66b26c224e31e94cdfcb8c5e3f840ac4fb7f3b19d4`
 
-Exact deployed commit: `c566032159f42f62c0958ea3e8f28f679b166966`
+Exact deployed code commit: `c566032159f42f62c0958ea3e8f28f679b166966`
+
+Anonymous-approved post-deploy evidence commit: `7dc65dcef5e36e268bb52898d36bba89e29d3f47`
 
 Exact deployed source SHA-256: `A9BCD2B7E047AFD3C257FCCF911190BFD8DE9B41F90491B297A541D2E837BBAB`
 
@@ -68,4 +70,6 @@ The complete post-deployment matrix is reconciled without cherry-picking in `doc
 
 The rehearsal deployment, authorized upgrade, and unauthorized upgrade are respectively `0x3ea45811fd48d56c7b6deb37509e2cf9e7f67ff3f3affd0cd92b3de135a5e80b`, `0x7e4b2662696615911f42cce6e10018734daed29dbd50d3f7d1b2460bec7dcc30`, and `0x2a8f51729dff46e6291ba5996f3ff68c48cf8aa54dbfbdad2a0fda8729200b97`. The authorized path preserved the exact 20,529-byte source SHA-256 and fixture state; the unauthorized path finalized as `ERROR` with Root Slot storage access `forbidden`, followed by unchanged source/state readback.
 
-The frontend production build is compiled with the canonical address through `VITE_CONTRACT_ADDRESS`; 18 frontend tests and the production build pass. The Task remains `DEPLOYMENT_READY`, not `LIVE_VERIFIED`, until anonymous `POST_DEPLOY_TEST` approves the exact committed evidence revision.
+The frontend production build is compiled with the canonical address through `VITE_CONTRACT_ADDRESS`; 18 frontend tests and the production build pass. Anonymous `POST_DEPLOY_TEST` approved commit `7dc65dcef5e36e268bb52898d36bba89e29d3f47` and its 28-entry manifest.
+
+The public repository is `https://github.com/congab91-maker/accessibility-scope-covenant` (`PUBLIC`, default branch `codex/main`). Vercel production is `https://accessibility-scope-covenant.vercel.app`, deployment `dpl_ANL16AMXqj3Ci9Ebz4DKJCWZp3dM`, in confirmed scope `brunogg`. Public raw contract parity, byte-identical public/local JavaScript bundle parity, and live provider-selector behavior are recorded in `docs/FINAL_RELEASE_EVIDENCE.md`. Final completion remains pending anonymous `POST_GITHUB_VERCEL_FINAL` approval of the exact final evidence revision.
