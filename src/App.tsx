@@ -11,7 +11,7 @@ import {
 } from "./contract";
 import { FinalizedExecutionError, errorMessage } from "./receipt";
 import type { EvidenceKind, EvidenceRecord, HexAddress, PendingPostcondition, PendingWrite, Profile, TransactionPhase } from "./types";
-import { connectWallet, discoverWallets, type Eip1193Provider, type WalletOption } from "./wallet";
+import { connectWallet, discoverWallets, watchWalletState, type Eip1193Provider, type WalletOption } from "./wallet";
 
 const phaseCopy: Record<TransactionPhase, string> = {
   idle: "Ready",
@@ -158,6 +158,18 @@ export default function App() {
   useEffect(() => {
     setPending(getPendingWrite());
   }, []);
+
+  useEffect(() => {
+    if (!provider) return;
+    return watchWalletState(provider, (event) => {
+      setAccount(undefined);
+      setProvider(undefined);
+      setWalletName("");
+      setWalletDialog(false);
+      setPhase("error");
+      setNotice(`Wallet ${event}; reconnect through the provider selector before another write.`);
+    });
+  }, [provider]);
 
   async function openWalletSelector() {
     setBusy(true);

@@ -14,6 +14,8 @@ export interface WalletOption {
   provider: Eip1193Provider;
 }
 
+const WALLET_STATE_EVENTS = ["accountsChanged", "chainChanged", "disconnect"] as const;
+
 interface AnnouncedProvider {
   info: { uuid: string; name: string; icon?: string; rdns?: string };
   provider: Eip1193Provider;
@@ -111,4 +113,13 @@ export async function connectWallet(option: WalletOption): Promise<HexAddress> {
   if (!Array.isArray(accounts) || !isAddress(accounts[0])) throw new Error("The selected provider returned no valid account");
   await ensureStudionet(option.provider);
   return accounts[0];
+}
+
+export function watchWalletState(provider: Eip1193Provider, invalidate: (event: string) => void): () => void {
+  const listeners = WALLET_STATE_EVENTS.map((event) => {
+    const listener = () => invalidate(event);
+    provider.on?.(event, listener);
+    return [event, listener] as const;
+  });
+  return () => listeners.forEach(([event, listener]) => provider.removeListener?.(event, listener));
 }

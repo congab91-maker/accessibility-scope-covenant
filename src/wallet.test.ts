@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { dedupeWalletOptions, type Eip1193Provider } from "./wallet";
+import { dedupeWalletOptions, watchWalletState, type Eip1193Provider } from "./wallet";
 
 const provider = (): Eip1193Provider => ({ request: async () => [] });
 
@@ -38,5 +38,35 @@ describe("wallet discovery normalization", () => {
       { id: "two", name: "Backpack", rdns: "other.backpack", provider: provider() },
     ]);
     expect(options.map(({ rdns }) => rdns)).toEqual(["app.backpack", "other.backpack"]);
+  });
+});
+
+describe("wallet state invalidation", () => {
+  const observed = () => {
+    const listeners = new Map<string, (...args: unknown[]) => void>();
+    const source: Eip1193Provider = {
+      request: async () => [],
+      on: (event, listener) => listeners.set(event, listener),
+      removeListener: (event, listener) => listeners.get(event) === listener && listeners.delete(event),
+    };
+    return { source, listeners };
+  };
+
+  for (const event of ["accountsChanged", "chainChanged", "disconnect"]) {
+    it(`fails closed on ${event}`, () => {
+      const { source, listeners } = observed();
+      const invalidated: string[] = [];
+      watchWalletState(source, (reason) => invalidated.push(reason));
+      listeners.get(event)?.();
+      expect(invalidated).toEqual([event]);
+    });
+  }
+
+  it("removes every provider listener on cleanup", () => {
+    const { source, listeners } = observed();
+    const cleanup = watchWalletState(source, () => undefined);
+    expect([...listeners.keys()]).toEqual(["accountsChanged", "chainChanged", "disconnect"]);
+    cleanup();
+    expect(listeners.size).toBe(0);
   });
 });
