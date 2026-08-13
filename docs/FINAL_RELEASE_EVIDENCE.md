@@ -6,7 +6,7 @@ Evidence captured: 2026-08-14 (Asia/Saigon)
 
 ## Exact release identity
 
-- Final application source commit: `075ffb63c730834479e256227c6d06e62b06f552`
+- Final application source commit: `4b1029385825e722b0686b10b5149462dcdd8f54`
 - Final evidence commit: recorded by the checkpoint prompt after this evidence-only revision is committed
 - Public repository: `https://github.com/congab91-maker/accessibility-scope-covenant`
 - Visibility: `PUBLIC`
@@ -25,9 +25,9 @@ The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-
 - Production alias: `https://accessibility-scope-covenant.vercel.app`
 - Production deployment: verified `Ready`; the immutable deployment ID is recorded in the exact-revision checkpoint prompt
 - Status: `Ready`
-- Production JavaScript: `/assets/index-CnPjgyMy.js`
-- Public/local bundle SHA-256: `8B83B26DF2D47E5BF82A854F06ED969CFC1E7C084B6233F70EFFE05FC5E2163F`
-- Public bundle size: `602,321` bytes
+- Production JavaScript: `/assets/index-BsU7tgo4.js`
+- Public/local bundle SHA-256: `7D9669015DC307CC3FE69A56FE360DCF9BBA401FEF3FA0F72E341867A1AC5282`
+- Public bundle size: `602,676` bytes
 
 The public production bundle and local production bundle are byte-identical. The public bundle contains the canonical address and does not contain the disposable rehearsal address.
 
@@ -73,6 +73,14 @@ Create, all five evidence writes, freeze, and two assessment attempts were shown
 | Same owner | Register covenant #5 / `create_profile` | `0x91a36cadb8b34047359ae04645815ebbc1d0a1a0cbc000dc8c6ad539e355acdc` | Corrected baseline-bound client reported success only after exact profile readback |
 | Same owner | Add journey to #5 / `add_evidence` | `0x7ad0ca1be75f02100100f10aea50e78715c1c03c49a6b6ac83457eef343576fb` | Corrected client reported success only after exact evidence readback |
 | Same owner | Intentionally insufficient freeze / `freeze_profile` | `0x8119239d698470e75fbfb86e378af22ca0ef225876e75c69c3df7074dc092d49` | `FINALIZED / ERROR`; decoded reason `Freeze requires one ACR, one version page, and three to five journeys`; profile stayed `DRAFT`, count stayed `1` |
+| Same owner | Register successor covenant #6 / `create_profile` | `0x8a8687faec8233c465b3a4dde24a0c71b1a8efc0f13969bc9bfba157ce07c804` | `FINALIZED / SUCCESS`; exact owner/product and new version `WCAG 2.2.1` read back |
+| Same owner | Add #6 ACR / `add_evidence` | `0x7e43fb8bfeb547a7aaaad009019744af5e7c374ccd2f643f00e39a772b13988a` | `FINALIZED / SUCCESS`; exact evidence read back |
+| Same owner | Add #6 version / `add_evidence` | `0x0ab0aadcf225d06a37b7a42a6e49ab48205a75ce488bad28cd8b8f7a0f742d53` | `FINALIZED / SUCCESS`; exact evidence read back |
+| Same owner | Add #6 journey 1 / `add_evidence` | `0x74d58bc8bfa7ce443977227410df055d9e90230b631643f6a77d1b6ce800bec6` | `FINALIZED / SUCCESS`; exact evidence read back |
+| Same owner | Add #6 journey 2 / `add_evidence` | `0x7be3248456f1ec2891e6ea9f1a7e1a6df32217107f1035ca9d317b3b4a5bcea3` | `FINALIZED / SUCCESS`; exact evidence read back |
+| Same owner | Add #6 journey 3 / `add_evidence` | `0x0cd0618be1b376ba8c0e7673a1d80b912abb74bcbe5b0769cc9378d34466a49d` | `FINALIZED / SUCCESS`; five-source boundary read back |
+| Same owner | Freeze #6 / `freeze_profile` | `0xec0e51ed400ec7ae125be05f72f240c48f30ef836f88b9fb050a855427912ea9` | `FINALIZED / SUCCESS`; after an ambiguous fetch, reload reconciliation proved `FROZEN` by authoritative readback without resubmission |
+| Same owner | Link #4 → #6 / `supersede_profile` | `0xa6b1235e435032f74e9cbea6e2a1187c23d88bc43c944d7661f26cb900dbf8f4` | `FINALIZED / SUCCESS`; #4 became `SUPERSEDED/superseded_by=6`, #6 read back `supersedes=4` |
 
 After the rejected freeze, the user hard-refreshed the production alias, re-entered the wallet-connected view and selected `Reconcile`. The corrected bundle rechecked the known hash, decoded the terminal rollback, cleared the pending journal, displayed the exact contract reason and did not resubmit. Explorer still showed the rejected freeze as the newest transaction, proving zero duplicate write.
 
@@ -81,9 +89,11 @@ After the rejected freeze, the user hard-refreshed the production alias, re-ente
 - A clean browser with no injected provider loaded covenant `#4`; write controls remained disabled while the full five-source `UNRESOLVED / HUMAN_REVIEW_REQUIRED` readback was visible.
 - After a clean reload, the same unauthenticated public reader loaded `#4` again with the same owner, attempts, evidence and consequence, with no console error.
 - The public reader loaded covenant `#1`, saw `SUPERSEDED` and followed the rendered `Superseded by covenant #2` control. Covenant `#2` then showed `REVIEW_REQUIRED / EVIDENCE_INCOMPLETE` and the reverse `Supersedes covenant #1` relationship. The historical supersession write and both authoritative states are already finalized in `docs/LIVE_STUDIO_EVIDENCE.md`.
+- The user then exercised the advertised Vercel write path itself: after freezing successor #6, the live `Link` action submitted `supersede_profile(4, 6)`. The UI showed `FINALIZED`, success and readback; #4 rendered `SUPERSEDED` plus `Superseded by covenant #6`. Clicking that visible relationship loaded #6 without a manual ID entry, where the reverse `Supersedes covenant #4` relationship was rendered from authoritative readback.
+- Disconnecting the selected OKX provider made the corrected production UI clear the address and expose `Connect wallet`; write actions were no longer authorized. Four focused tests additionally prove `accountsChanged`, `chainChanged`, provider `disconnect`, and cleanup of all registered listeners.
 - The user wallet selector showed four unique providers and connected only the explicitly chosen OKX provider. No automatic MetaMask or first-provider request occurred.
 
-Intermittent RPC/SDK behavior discovered during the journey produced the corrective chain from `8e33b4b` through `075ffb6`. The final client polls conservatively, accepts supported SDK status shapes, distinguishes absent finality from explicit `false`, binds pending intent to actor plus pre-write baseline, requires `FINALIZED/SUCCESS` for known hashes, proves a new transition for hashless recovery, decodes rollback payloads without serializing hostile receipt internals, and exposes two-way lineage readback. The regression suite is included in the 31 passing frontend tests.
+Intermittent RPC/SDK and wallet behavior discovered during the journey produced the corrective chain from `8e33b4b` through `4b10293`. The final client polls conservatively, accepts supported SDK status shapes, distinguishes absent finality from explicit `false`, binds pending intent to actor plus pre-write baseline, requires `FINALIZED/SUCCESS` for known hashes, proves a new transition for hashless recovery, decodes rollback payloads without serializing hostile receipt internals, clears stale wallet authority on provider events, and exposes two-way lineage readback. The regression suite is included in the 35 passing frontend tests.
 
 ## Gate history and scope disclosure
 

@@ -67,7 +67,7 @@ Current exact-revision results:
 
 ```powershell
 python -m pytest -q -p no:cacheprovider  # 19 passed
-npm test                                 # 31 passed
+npm test                                 # 35 passed
 npm run build                            # passed
 $env:GENVM_VERSION='v0.3.0-rc7'
 & 'E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\.venv\Scripts\python.exe' -m genvm_linter.cli check contracts\accessibility_scope_covenant.py --json
