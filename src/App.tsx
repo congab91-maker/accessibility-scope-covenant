@@ -207,10 +207,11 @@ export default function App() {
     } catch (error) {
       const intent = getPendingWrite();
       setPending(intent);
-      if (intent && !intent.hash) {
+      if (intent) {
         try {
+          setPhase("readback");
           setNotice(`${input.label}: wallet result was ambiguous; checking contract state…`);
-          const readback = await reconcilePendingWrite(intent, setPhase);
+          const readback = await verifyPendingPostcondition(intent);
           setProfileId(readback.profileId);
           setProfile(readback.result.profile);
           setEvidence(readback.result.evidence);
@@ -221,7 +222,7 @@ export default function App() {
           setNotice(`${input.label} was recovered and confirmed by authoritative contract readback.`);
           return;
         } catch {
-          // Preserve the pre-sign journal for explicit reconciliation after ambiguous provider failures.
+          // Preserve the journal for explicit receipt reconciliation when authoritative state is not visible yet.
         }
       }
       setPhase("error");
