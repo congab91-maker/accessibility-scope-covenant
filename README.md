@@ -6,7 +6,7 @@ Accessibility Scope Covenant lets procurement reviewers freeze a product/version
 
 - [Live application](https://accessibility-scope-covenant.vercel.app)
 - [Canonical contract on Studionet Explorer](https://explorer-studio.genlayer.com/address/0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617)
-- [Deployment transaction](https://explorer-studio.genlayer.com/tx/0x8add8f28275136ec6604be66b26c224e31e94cdfcb8c5e3f840ac4fb7f3b19d4)
+- [Deployment transaction](https://explorer-studio.genlayer.com/tx/0xba76a030bdd5142fd8dbc5d9c59b0a8eda81d795554ded612a54489b3e37beff)
 - Contract: `0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617`
 - Network: GenLayer Studionet, chain ID `61999`
 
@@ -78,7 +78,7 @@ Responsive browser checks cover 320, 375, 414, 768 and 1280 pixels. The live pro
 
 ## Deployment
 
-The canonical contract was deployed on Studionet by `0x2e53bb6ED175A7F827590D9D3a353FC51Eb8996a` in transaction `0x8add8f28275136ec6604be66b26c224e31e94cdfcb8c5e3f840ac4fb7f3b19d4`. Its 20,529-byte source hashes to `A9BCD2B7E047AFD3C257FCCF911190BFD8DE9B41F90491B297A541D2E837BBAB`, matching local source, public GitHub source and deployed-code readback.
+The canonical replacement contract was deployed on Studionet by `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902` in transaction `0xba76a030bdd5142fd8dbc5d9c59b0a8eda81d795554ded612a54489b3e37beff`. Its 20,601-byte source hashes to `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`, matching the reviewed local source and deployed-code readback. The earlier deployment at `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`, created by `0x2e53...8996a` in transaction `0x8add8f...b19d4`, is historical; no state was migrated from it.
 
 The contract is upgradable only by the registered Root Slot upgrader. Authorized source replacement with preserved storage and unauthorized rejection were rehearsed on a separate disposable exact-source deployment. Loss of the upgrader requires a replacement deployment and coordinated update of every public reference; no recovery authority is implied.
 
