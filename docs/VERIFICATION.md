@@ -8,7 +8,7 @@ RPC: `https://studio.genlayer.com/api`
 
 Explorer: `https://explorer-studio.genlayer.com`
 
-Canonical contract: `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`
+Historical canonical contract: `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`
 
 Deployment transaction: `0x8add8f28275136ec6604be66b26c224e31e94cdfcb8c5e3f840ac4fb7f3b19d4`
 
@@ -22,11 +22,11 @@ Proposed remediation implementation commit: `f73810333af73e9e2b24c6f65a53d136863
 
 Proposed remediation contract SHA-256: `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`
 
-The proposed source is not described as deployed until an approved upgrade reaches finality, execution success, exact deployed-code hash parity, preserved storage readback, and the authorization matrix below. The existing address, deployment transaction, deployed hash, and earlier evidence remain historical facts for the currently deployed version.
+The proposed source is not described as deployed until an approved replacement deployment reaches finality, execution success, exact deployed-code hash parity, upgrader readback, and the authorization matrix below. The existing address, deployment transaction, deployed hash, state, and earlier evidence remain historical facts only; no state migration is claimed or performed.
 
-Selected deployer/upgrader: `0x2e53bb6ED175A7F827590D9D3a353FC51Eb8996a`
+Selected replacement deployer/upgrader: `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`
 
-The Studio network selector was visibly verified as `GenLayer Studio` before this account was recorded. The account selector exposed the full address above. If access to this account is lost, or Studio/Studionet chain state is reset, upgrade authority may be lost; the supported fallback is a replacement deployment with every address reference updated, not a promise to recover the old address.
+The Studio network selector was visibly verified as `GenLayer Studio`; the account selector exposed the full address above with 998 GEN. The historical upgrader `0x2e53...8996a` was absent from every accessible Studio browser session, so no mismatched or blind upgrade was attempted. If access to the newly selected account is later lost, the supported fallback is another freshly reviewed replacement deployment with every address reference updated, not a promise to recover either old address.
 
 ## Toolchain provenance
 
@@ -60,16 +60,16 @@ Two advisories are reviewed:
 - Frontend: receipt finality/leader success boundaries, simplified rollback decoding, runtime contract-response validation, safe identifiers, wallet-provider deduplication, fail-closed account/network/disconnect events with listener cleanup, and method-specific readback behavior. Restart reconciliation covers create without a connected wallet, evidence, freeze, assessment, both sides of supersession, delayed readback and mismatch. Known hashes cannot bypass `FINALIZED/SUCCESS`; hashless recovery is actor-bound and requires a new transition from its pre-write baseline. Regressions reject no-broadcast, pre-existing idempotent state and finalized-error false recovery.
 - Browser: explicit provider selector and cancel behavior; no supported-provider fallback; no console errors; no unsafe links; no horizontal overflow or viewport escape at widths 320, 375, 414, 768, and 1280.
 
-## Proposed no-constructor upgrade plan
+## Proposed replacement deployment plan
 
 1. Obtain fresh anonymous `PRE_DEPLOY` approval bound to the remediation package and candidate source hash above.
-2. Use only the locked existing Studio account/upgrader `0x2e53bb6ED175A7F827590D9D3a353FC51Eb8996a` on Studionet.
-3. Upgrade the canonical address with the exact reviewed source bytes through the authorized upgrade path. This is a source replacement with no constructor call; storage field order and types are unchanged.
+2. Use only the locked replacement Studio account/deployer/upgrader `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902` on Studionet.
+3. Deploy the exact reviewed source as a new contract with zero constructor arguments. The zero-argument constructor runs and registers the transaction sender in Root Slot plus the contract `upgrader` readback.
 4. Require transaction `FINALIZED`, consensus finality where present, leader execution `SUCCESS`, and deployed-code SHA-256 equal to `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`.
-5. Read `get_upgrader()` and representative pre-existing profiles before and after upgrade; require exact upgrader and state parity.
+5. Require `get_upgrader()` to equal the locked account. Preserve the historical contract/address/state without mutation; do not copy or claim migration of any profile.
 6. Create a fresh owner-A frozen profile with attempts `0` and no assessment record. From unrelated owner B, call `assess_scope`; require the exact owner rejection and unchanged profile JSON, attempts, state, verdict, consequence, timestamps, assessment, and digest set. Then run the owner-A assessment and require the bounded attempt plus assessment-time `source_digest_set` readback.
 7. Verify public read-only inspection, non-owner frontend write disabling, and the existing two-argument supersession/lineage path.
-8. If upgrade or readback is ambiguous, do not retry blindly: reconcile receipt and chain state first. If canonical authority is unavailable, stop and obtain review for a replacement-deployment plan; never silently change the address.
+8. If deployment or readback is ambiguous, do not retry blindly: reconcile receipt, address creation, code, and chain state first. Only after `POST_DEPLOY_TEST` approval update frontend, repository, and submission references to the verified replacement address.
 
 ## Historical deployment and recovery record
 

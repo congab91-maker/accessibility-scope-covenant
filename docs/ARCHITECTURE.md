@@ -39,17 +39,17 @@ During `assess_scope`, the leader retrieves the claim page plus every locked sou
 
 The reason string is preserved for human explanation but excluded from consensus, preventing prose variation from deciding state. Source digests are included, so validators must agree on the same retrieved normalized evidence set as well as the semantic decision.
 
-## Upgrade architecture
+## Deployment and upgrade architecture
 
 Classification: `UPGRADABLE`.
 
 The constructor registers `gl.message.sender_address` in `gl.storage.Root.get().upgraders` and stores the address for authoritative readback. `upgrade(new_code)` replaces Root Slot code; authorization is enforced by the locked Root Slot upgrader list. The selected Studionet Studio account is:
 
-`0x2e53bb6ED175A7F827590D9D3a353FC51Eb8996a`
+`0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902`
 
-Losing control of this account loses upgrade authority. Recovery then requires deploying a replacement contract and updating every frontend, repository, and submission reference to the new address. No linked contracts exist.
+The previous canonical contract at `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a` remains historical because its upgrader account is no longer available in any accessible Studio session. The remediation therefore uses a replacement deployment, not an upgrade or migration. The zero-argument constructor runs on replacement deployment and registers the selected sender above as the new Root Slot upgrader. No old profile state is copied; the previous address and state remain independently readable historical evidence. After verified deployment, every frontend, repository, and submission reference moves to the replacement address. No linked contracts exist.
 
-Before any production-facing upgrade, use a separate test deployment to rehearse the exact candidate, verify method schema and storage readback, and obtain the applicable fresh review/approval. Never rehearse destructive or storage-incompatible code on the canonical deployment.
+Losing control of the new account again loses upgrade authority. Recovery would require another freshly reviewed replacement deployment. Before any later production-facing upgrade, use a separate test deployment to rehearse the exact candidate, verify method schema and storage readback, and obtain fresh approval. Never rehearse destructive or storage-incompatible code on a canonical deployment.
 
 ## Client-side transaction boundary
 
