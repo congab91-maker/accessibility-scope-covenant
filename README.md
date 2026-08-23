@@ -16,15 +16,15 @@ A procurement reviewer cannot assume that a vendor-controlled accessibility clai
 
 ## Why GenLayer is essential
 
-The Intelligent Contract freezes the claim, exact version and public HTTPS sources. During `assess_scope`, a leader retrieves and semantically evaluates those sources; validators independently repeat retrieval and accept only an equivalent normalized decision. Consensus covers the verdict, decision flags, limitation IDs and normalized-source digests. The agreed on-chain result determines either `PROCUREMENT_REVIEW_READY` or the fail-closed `HUMAN_REVIEW_REQUIRED` consequence. A conventional deterministic contract could preserve the inputs but could not interpret whether heterogeneous public evidence matches their meaning and scope.
+The Intelligent Contract locks the claim, exact version and canonical public HTTPS source references. During owner-authorized `assess_scope`, a leader retrieves and semantically evaluates those locked source references; validators independently repeat retrieval and accept only an equivalent normalized decision. Consensus covers the verdict, decision flags, limitation IDs and assessment-time source-digest set. The agreed on-chain result determines either `PROCUREMENT_REVIEW_READY` or the fail-closed `HUMAN_REVIEW_REQUIRED` consequence. A conventional deterministic contract could preserve the inputs but could not interpret whether heterogeneous public evidence matches their meaning and scope.
 
 ## How it works
 
 1. A registrant connects an explicitly selected browser-wallet provider and switches to Studionet when prompted.
 2. They create a version-bound covenant containing the exact public claim.
 3. They add one ACR/OpenACR source, one version page, three to five critical-journey sources and, optionally, one accessibility statement.
-4. They freeze the evidence covenant and request a validator assessment. An unresolved assessment can be retried up to three total attempts.
-5. Any reader loads the profile ID to inspect evidence, verdict and procurement consequence. The owner can link a same-product successor without rewriting the historical record.
+4. They freeze the source-reference covenant. Only the profile owner can execute `assess_scope` (and retry an unresolved assessment up to the bounded three-attempt budget), preventing third parties from consuming evaluation attempts.
+5. Any reader loads the profile ID to inspect locked source references, verdict, assessment-time content digests, and procurement consequence. The owner can link a same-product successor without rewriting the historical record.
 
 ## Architecture
 
@@ -36,7 +36,7 @@ Actors are the registrant/owner, public reader, GenLayer validators and the reco
 
 `DRAFT → FROZEN → ALIGNED | REVIEW_REQUIRED | UNRESOLVED`
 
-Any non-draft profile may later become `SUPERSEDED`. Write methods are `create_profile`, `add_evidence`, `freeze_profile`, `assess_scope`, `supersede_profile` and `upgrade`; seven view methods expose counts, profiles, evidence, assessments, client-reference lookup and upgrader readback. Matching create/evidence/freeze/supersession replays are idempotent. There is no public verdict setter and no token, payment or economic value path.
+Any non-draft profile may later become `SUPERSEDED`. Write methods are `create_profile`, `add_evidence`, `freeze_profile`, `assess_scope`, `supersede_profile` and `upgrade`; seven view methods expose counts, profiles, evidence, assessments, client-reference lookup and upgrader readback. All profile mutation methods (`add_evidence`, `freeze_profile`, `assess_scope`, `supersede_profile`) are strictly owner-authorized, ensuring an unrelated caller cannot trigger assessment or consume the profile's three-attempt budget. Readers remain read-only. Matching create/evidence/freeze/supersession replays are idempotent. There is no public verdict setter and no token, payment or economic value path.
 
 Validator equivalence deliberately excludes free-form reasoning prose. It compares the normalized verdict, four scope flags, sorted material-limitation IDs and sorted source-digest set; malformed, contradictory, unavailable or disagreeing results normalize to `UNRESOLVED` and `HUMAN_REVIEW_REQUIRED`.
 
@@ -66,7 +66,7 @@ Contract tests additionally require Python 3 with `pytest`. GenVM lint/validatio
 Current exact-revision results:
 
 ```powershell
-python -m pytest -q -p no:cacheprovider  # 19 passed
+python -m pytest -q -p no:cacheprovider  # 20 passed
 npm test                                 # 35 passed
 npm run build                            # passed
 $env:GENVM_VERSION='v0.3.0-rc7'
@@ -96,6 +96,7 @@ The contract is upgradable only by the registered Root Slot upgrader. Authorized
 
 - This product evaluates claim-to-document scope alignment; it is not WCAG certification, manual accessibility testing, legal advice or proof of evidence ownership.
 - PDF-only ACR evidence is unsupported; use public HTML or OpenACR JSON.
-- The contract stores normalized-content digests, not historical full-page snapshots, so later assessments observe the public content retrievable at that time.
+- The contract locks source references and binds normalized content digests at assessment time, rather than snapshotting or freezing remote page contents at freeze time. Each assessment independently refetches live public pages, so retries or subsequent assessments bind the content retrievable at that assessment time.
+- Assessment execution and retries are strictly owner-authorized; the bounded three-attempt budget cannot be consumed by unrelated callers.
 - Public-source availability and validator interpretation can produce `UNRESOLVED`; retries are capped at three and never create a favorable default.
 - Studionet is a test network. The canonical address and evidence are not a mainnet production guarantee.

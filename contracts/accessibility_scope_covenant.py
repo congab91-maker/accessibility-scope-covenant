@@ -345,6 +345,7 @@ class AccessibilityScopeCovenant(gl.Contract):
     def assess_scope(self, profile_id: u256) -> None:
         pid = int(profile_id)
         profile = self._load_profile(pid)
+        self._require_owner(pid)
         if profile["state"] not in ("FROZEN", "UNRESOLVED"):
             _fail("Assessment requires a FROZEN or retryable UNRESOLVED profile")
         if int(profile["attempts"]) >= MAX_ATTEMPTS:
@@ -377,18 +378,18 @@ class AccessibilityScopeCovenant(gl.Contract):
                     page = gl.nondet.web.render(source["url"], mode="text")
                 except Exception:
                     return _safe_unresolved(
-                        "At least one frozen source was unavailable during validator retrieval.",
+                        "At least one locked source reference was unavailable during validator retrieval.",
                         digests,
                     )
                 if not isinstance(page, str):
-                    return _safe_unresolved("A frozen source did not render as text.", digests)
+                    return _safe_unresolved("A locked source reference did not render as text.", digests)
                 normalized = _normalize_source(page)
                 if not normalized:
-                    return _safe_unresolved("A frozen source rendered no usable text.", digests)
+                    return _safe_unresolved("A locked source reference rendered no usable text.", digests)
                 bounded = normalized[:MAX_SOURCE_CHARS]
                 total_chars += len(bounded)
                 if total_chars > MAX_TOTAL_SOURCE_CHARS:
-                    return _safe_unresolved("The frozen evidence exceeded the bounded review window.", digests)
+                    return _safe_unresolved("The retrieved source content exceeded the bounded review window.", digests)
                 digest = hashlib.sha256(normalized.encode("utf-8")).hexdigest()
                 digests.append(source["kind"] + "|" + source["url"] + "|" + digest)
                 rendered.append(

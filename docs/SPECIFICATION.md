@@ -11,20 +11,20 @@ Project type: independent PROJECT with one Intelligent Contract and one browser 
 
 Accessibility Scope Covenant records a bounded, evidence-backed comparison between a public product accessibility claim and the public materials that define its scope. It addresses a procurement trust problem: a vendor-controlled claim can name the wrong product or version, omit material limitations, or rely on incomplete evidence while still appearing review-ready.
 
-GenLayer is essential because validators independently retrieve the same frozen public URLs, apply a semantic comparison, and accept the leader result only when the normalized decision projection agrees. A plain deterministic contract could preserve inputs but could not interpret the meaning and scope of heterogeneous ACR, version, statement, and journey pages.
+GenLayer is essential because validators independently retrieve the same locked public source references, apply a semantic comparison, and accept the leader result only when the normalized decision projection agrees. A plain deterministic contract could preserve inputs but could not interpret the meaning and scope of heterogeneous ACR, version, statement, and journey pages.
 
 This is not WCAG certification, legal advice, ownership verification, or proof that a journey passed manual testing.
 
 ## 2. Actors and trust boundaries
 
-- Registrant: creates a profile, adds evidence, freezes it, and may link a successor profile.
-- Reader/procurement reviewer: reads the public profile, evidence list, assessment, and consequence.
+- Registrant/Owner: creates a profile, adds evidence references, freezes the source-reference covenant, triggers bounded assessment/retries (`assess_scope`, strictly owner-authorized and capped at 3 attempts), and may link a successor profile. Unrelated callers cannot trigger assessment or consume attempts.
+- Reader/procurement reviewer: read-only access to the public profile, locked source references, assessment-time content digests, verdict, and consequence.
 - GenLayer validators: retrieve and semantically compare untrusted public sources.
 - Upgrader: the Studio account that deploys the contract and is registered in the Root Slot during construction.
 
 Registrant text, URLs, retrieved pages, SDK/RPC responses, receipts, wallet providers, and model output are untrusted. Contract-side validation, bounded retrieval, normalized consensus comparison, and authoritative readback are the enforcement boundaries.
 
-## 3. Evidence covenant
+## 3. Evidence covenant and digest binding
 
 A profile must freeze exactly:
 
@@ -35,7 +35,9 @@ A profile must freeze exactly:
 
 The claim page is also retrieved during assessment. Sources must be public HTTPS URLs without credentials, fragments, localhost, private, or reserved IP targets. PDF-only ACR evidence is unsupported and therefore cannot satisfy the freeze covenant.
 
-Each assessment independently refetches every frozen URL. Text is normalized and bounded to 40,000 characters per source and 160,000 characters total. The contract records a SHA-256 digest set for the retrieved normalized text; it does not store full page snapshots.
+`freeze_profile` locks the exact subject fields (product name, version, claim text), canonical source URLs, kinds, and cardinality. It does not retrieve, snapshot, or bind remote page content or content digests at freeze time.
+
+Each authorized `assess_scope` call independently refetches every locked source URL. Text is normalized and bounded to 40,000 characters per source and 160,000 characters total. The contract records a SHA-256 digest set for the retrieved normalized text at assessment time (`source_digest_set`); it does not store full page snapshots. If an unresolved assessment is retried by the owner, validators refetch live public content, which may reflect updated text and produce a different digest set.
 
 ## 4. State machine
 
@@ -66,12 +68,12 @@ Validators compare the normalized verdict, four decision flags, sorted limitatio
 
 Writes:
 
-- `create_profile(client_ref, product_name, version, claim_text, claim_url) -> u256`
-- `add_evidence(profile_id, source_kind, url)`
-- `freeze_profile(profile_id)`
-- `assess_scope(profile_id)`
-- `supersede_profile(old_profile_id, new_profile_id)`
-- `upgrade(new_code)`
+- `create_profile(client_ref, product_name, version, claim_text, claim_url) -> u256` (public; registers sender as profile owner)
+- `add_evidence(profile_id, source_kind, url)` (owner-only)
+- `freeze_profile(profile_id)` (owner-only)
+- `assess_scope(profile_id)` (owner-only; bounded to 3 attempts per profile)
+- `supersede_profile(old_profile_id, new_profile_id)` (owner-only for both profiles)
+- `upgrade(new_code)` (Root Slot upgrader only)
 
 Views:
 
@@ -83,7 +85,7 @@ Views:
 - `get_assessment(profile_id)`
 - `get_profile_by_client_ref(owner, client_ref)`
 
-Create, evidence addition, freeze, and supersession have idempotent replay behavior for matching intent. Assessment retry is bounded to three attempts.
+Create, evidence addition, freeze, and supersession have idempotent replay behavior for matching intent. Assessment retry is strictly owner-authorized and bounded to three attempts.
 
 ## 7. Frontend journeys
 

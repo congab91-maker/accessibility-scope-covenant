@@ -106,6 +106,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
 
   const journeyCount = useMemo(() => evidence.filter((item) => item.kind === "critical_journey").length, [evidence]);
+  const isOwner = Boolean(account && profile && account.toLowerCase() === profile.owner.toLowerCase());
   const configured = Boolean(import.meta.env.VITE_CONTRACT_ADDRESS);
 
   async function refresh(id = profileId) {
@@ -299,7 +300,7 @@ export default function App() {
     await execute({
       functionName: "add_evidence",
       callArgs: [BigInt(profile.id), kind, evidenceUrl.href],
-      label: "Add frozen-scope evidence",
+      label: "Add evidence reference",
       postcondition: { kind: "add_evidence", profileId: profile.id, evidence: { kind: kind as EvidenceKind, url: evidenceUrl.href } },
     });
     event.currentTarget.reset();
@@ -371,13 +372,13 @@ export default function App() {
                 <section className="panel evidence-panel">
                   <div className="panel-title"><div><p className="section-label">Evidence boundary</p><h3>{evidence.length} sources · {journeyCount} journeys</h3></div>{profile.state === "DRAFT" && <span>Editable</span>}</div>
                   <ol className="evidence-list">{evidence.map((item, index) => <li key={`${item.kind}-${item.url}`}><span>{String(index + 1).padStart(2, "0")}</span><div><strong>{evidenceLabels[item.kind]}</strong><a href={item.url} target="_blank" rel="noreferrer">{short(item.url, 34, 14)}</a></div></li>)}</ol>
-                  {profile.state === "DRAFT" && <form className="evidence-form" onSubmit={addEvidence}><select name="kind" aria-label="Evidence kind" defaultValue="critical_journey"><option value="acr_html">HTML ACR</option><option value="openacr_json">OpenACR JSON</option><option value="version_page">Version page</option><option value="accessibility_statement">Accessibility statement</option><option value="critical_journey">Critical journey</option></select><input name="url" type="url" pattern="https://.*" required placeholder="https://…" aria-label="Evidence URL" /><button disabled={busy || !account}>Add</button></form>}
+                  {profile.state === "DRAFT" && <form className="evidence-form" onSubmit={addEvidence}><select name="kind" aria-label="Evidence kind" defaultValue="critical_journey"><option value="acr_html">HTML ACR</option><option value="openacr_json">OpenACR JSON</option><option value="version_page">Version page</option><option value="accessibility_statement">Accessibility statement</option><option value="critical_journey">Critical journey</option></select><input name="url" type="url" pattern="https://.*" required placeholder="https://…" aria-label="Evidence URL" /><button disabled={busy || !isOwner}>Add</button></form>}
                 </section>
 
                 <section className="panel action-panel">
                   <p className="section-label">State action</p>
-                  {profile.state === "DRAFT" && <><h3>Freeze the evidence set</h3><p>Requires exactly one HTML/OpenACR source, one version page and 3–5 public journey pages.</p><button className="button primary" disabled={busy || !account} onClick={() => execute({ functionName: "freeze_profile", callArgs: [BigInt(profile.id)], label: "Freeze covenant", postcondition: { kind: "freeze_profile", profileId: profile.id } })}>Freeze covenant</button></>}
-                  {(profile.state === "FROZEN" || profile.state === "UNRESOLVED") && <><h3>{profile.state === "UNRESOLVED" ? "Retry bounded assessment" : "Run consensus assessment"}</h3><p>Validators independently retrieve the same frozen sources and compare stable decision fields.</p><button className="button primary" disabled={busy || !account || profile.attempts >= 3} onClick={() => execute({ functionName: "assess_scope", callArgs: [BigInt(profile.id)], label: "Assess accessibility scope", postcondition: { kind: "assess_scope", profileId: profile.id, previousAttempts: profile.attempts } })}>{profile.state === "UNRESOLVED" ? "Retry assessment" : "Assess scope"}</button></>}
+                  {profile.state === "DRAFT" && <><h3>Lock the source references</h3><p>Requires exactly one HTML/OpenACR source, one version page and 3–5 public journey pages.</p><button className="button primary" disabled={busy || !isOwner} onClick={() => execute({ functionName: "freeze_profile", callArgs: [BigInt(profile.id)], label: "Lock source references", postcondition: { kind: "freeze_profile", profileId: profile.id } })}>Lock references</button></>}
+                  {(profile.state === "FROZEN" || profile.state === "UNRESOLVED") && <><h3>{profile.state === "UNRESOLVED" ? "Retry bounded assessment" : "Run consensus assessment"}</h3><p>Validators independently retrieve the locked source references and bind normalized content digests to stable decision fields.</p>{!isOwner && <p>Only the profile owner can consume the bounded assessment attempts.</p>}<button className="button primary" disabled={busy || !isOwner || profile.attempts >= 3} onClick={() => execute({ functionName: "assess_scope", callArgs: [BigInt(profile.id)], label: "Assess accessibility scope", postcondition: { kind: "assess_scope", profileId: profile.id, previousAttempts: profile.attempts } })}>{profile.state === "UNRESOLVED" ? "Retry assessment" : "Assess scope"}</button></>}
                   {["ALIGNED", "REVIEW_REQUIRED", "SUPERSEDED"].includes(profile.state) && <><h3>Assessment is immutable</h3><p>Create a new version-bound covenant and link it through supersession when the public claim or product version changes.</p></>}
                 </section>
 
@@ -390,7 +391,7 @@ export default function App() {
                   <p className="section-label">Version lineage</p><h3>Supersede this covenant</h3><p>Both records must share the same product identity and already be frozen or assessed.</p>
                   {profile.supersedes > 0 && <p>Supersedes <button className="inline-link" disabled={busy} onClick={() => loadAndAnnounce(profile.supersedes)}>covenant #{profile.supersedes}</button>.</p>}
                   {profile.superseded_by > 0 && <p>Superseded by <button className="inline-link" disabled={busy} onClick={() => loadAndAnnounce(profile.superseded_by)}>covenant #{profile.superseded_by}</button>.</p>}
-                  {profile.superseded_by === 0 && <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", postcondition: { kind: "supersede_profile", oldProfileId: profile.id, newProfileId: newId } }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !account || profile.state === "DRAFT"}>Link</button></form>}
+                  {profile.superseded_by === 0 && <form onSubmit={async (event) => { event.preventDefault(); const data = new FormData(event.currentTarget); const newId = Number(data.get("new_id")); await execute({ functionName: "supersede_profile", callArgs: [BigInt(profile.id), BigInt(newId)], label: "Link superseding covenant", postcondition: { kind: "supersede_profile", oldProfileId: profile.id, newProfileId: newId } }); }}><input name="new_id" type="number" min="1" required placeholder="New covenant ID" aria-label="New covenant ID" /><button disabled={busy || !isOwner || profile.state === "DRAFT"}>Link</button></form>}
                 </section>
               </div>
             )}
