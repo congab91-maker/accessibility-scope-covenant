@@ -47,6 +47,23 @@ Only the verified public production alias is provided as a reviewer link. The pl
 
 The first real-extension user check exposed duplicate Backpack announcements and a duplicate legacy MetaMask alias. The final discovery path deduplicates the same provider object and same EIP-6963 reverse-domain identity, uses normalized display name only to suppress an identity-less legacy alias, and preserves distinct reverse-domain identities even when display names match. Four focused regression cases pass. On the final production alias, the selector showed exactly four unique detected providers — Phantom, OKX Wallet, MetaMask and Backpack — with no duplicate or mislabeled row. The user then selected OKX Wallet and verified that the header displayed both the connected address (`0x0d4b8…ad563`) and `Studionet · 61999`. This initial selector check requested no write; the subsequent end-to-end transactions are recorded below.
 
+## Replacement production web E2E
+
+After the remediation deployment, the production alias was exercised again through its real wallet path with the explicitly selected OKX provider `0x0d4b860b08b9fba6cf1d928c4a19863176ead563`. The selector did not auto-select MetaMask or another provider. The browser displayed Studionet `61999` and replacement contract `0xc575a…3d617` throughout.
+
+| Web action | Transaction | Production result and authoritative readback |
+| --- | --- | --- |
+| Register covenant `#3` | `0xd51797b405a9cf031730af45b99dd2b375ecf86b6c79443a2c33bdcb4d68521f` | `FINALIZED`, successful, contract readback verified owner, exact claim, version and `DRAFT` |
+| Add HTML ACR | `0x43cc318e44641b8e819c2069346013a9c59a4fc46f7844077e4deeac9810f6fc` | `FINALIZED`, successful, exact kind/URL read back; source count 1 |
+| Add version page | `0xe144b78b275eedcd9837cae0465f53661e7d8ce70cb752dae8c897c068a9ff7c` | `FINALIZED`, successful, exact kind/URL read back; source count 2 |
+| Add critical journey 1 | `0x683b020f6a628498aa2e236a1297edc84f90bf111d26795643409735c3360856` | `FINALIZED`, successful, exact kind/URL read back; 3 sources / 1 journey |
+| Add critical journey 2 | `0x477fdd228292477f5d5810a21225eecc768ba31874b9bb6b2141c61e6a560d3c` | `FINALIZED`, successful, exact kind/URL read back; 4 sources / 2 journeys |
+| Add critical journey 3 | `0x6bf2b7b8a9e5dd838b94e1c3143ba8d4ae81f3f2617a1416b54bfe0400d5e207` | `FINALIZED`, successful, exact kind/URL read back; 5 sources / 3 journeys |
+| Lock source references | `0x4335ff3932beff9c93d3f02b1288602168e8f91bab178266e8d6a3893bdc6cfa` | `FINALIZED`, successful, profile read back `FROZEN`, attempts `0 / 3` |
+| Assess scope | `0xa4db077fe088ba026a97d4f932d2be821deab6cdf0852f5332188e05c4163583` | `FINALIZED`, successful, consensus and contract readback verified attempts `1 / 3` |
+
+Finalized SDK readback for covenant `#3` is owner `0x0d4b…ad563`, evidence count `5`, state/verdict `UNRESOLVED`, consequence `HUMAN_REVIEW_REQUIRED`, attempts `1`, `frozen_at = 2026-08-23T05:16:34.261409Z`, and `assessed_at = 2026-08-23T05:18:21.105373Z`. Validator retrieval bound two assessment-time digests for the claim page and HTML ACR before a later locked reference was unavailable, so the fail-closed result is expected and valid. The browser reported each write as `FINALIZED, successful, and confirmed by contract readback`; no retry or duplicate submission was issued.
+
 ## Historical pre-remediation live end-to-end covenant journey
 
 The following user-wallet journey belongs to the historical contract and is retained as release history only. It is not evidence for the replacement authorization fix. Replacement deployment, owner/non-owner authorization, assessment-time digest and supersession evidence is in `docs/JUDGE_REMEDIATION_EVIDENCE.md`.
