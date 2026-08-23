@@ -2,32 +2,32 @@
 
 Checkpoint target: `POST_GITHUB_VERCEL_FINAL`
 
-Evidence captured: 2026-08-14 (Asia/Saigon)
+Evidence refreshed: 2026-08-23 (Asia/Saigon)
 
 ## Exact release identity
 
-- Final application source commit: `4b1029385825e722b0686b10b5149462dcdd8f54`
+- Final application source commit deployed to Vercel: `62d157b35900153d0042d672015615579e1f6fe7`
 - Final evidence commit: recorded by the checkpoint prompt after this evidence-only revision is committed
 - Public repository: `https://github.com/congab91-maker/accessibility-scope-covenant`
 - Visibility: `PUBLIC`
 - Default and release branch: `codex/main`
-- Canonical contract: `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`
-- Contract source SHA-256: `A9BCD2B7E047AFD3C257FCCF911190BFD8DE9B41F90491B297A541D2E837BBAB`
-- Contract source size: `20,529` bytes
+- Canonical replacement contract: `0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617`
+- Contract source SHA-256: `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`
+- Contract source size: `20,601` bytes
 - Network: GenLayer Studionet, chain ID `61999` (`0xf22f`)
 
-The public GitHub raw contract is 20,529 bytes and hashes to the same exact SHA-256 as the deployed-code readback and reviewed local source.
+The public GitHub raw contract is 20,601 bytes and hashes to the same exact SHA-256 as the replacement deployed-code readback and reviewed local source. The earlier contract `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a` and its profiles remain historical; no migration was performed.
 
 ## Vercel production identity
 
 - Confirmed scope/team: `brunogg`
 - Project: `accessibility-scope-covenant`
 - Production alias: `https://accessibility-scope-covenant.vercel.app`
-- Production deployment: verified `Ready`; the immutable deployment ID is recorded in the exact-revision checkpoint prompt
-- Status: `Ready`
-- Production JavaScript: `/assets/index-BsU7tgo4.js`
-- Public/local bundle SHA-256: `7D9669015DC307CC3FE69A56FE360DCF9BBA401FEF3FA0F72E341867A1AC5282`
-- Public bundle size: `602,676` bytes
+- Production deployment ID: `dpl_72LFUHb8vWEwkgkwRVCJHWd81tte`
+- Status: `READY`
+- Production JavaScript: `/assets/index-C04vM4Qi.js`
+- Public/local bundle SHA-256: `502D1AA25EBEE2EE6C72F2E03FC0D2B30AC57A432B25212D9AFBF9BC1C3930BB`
+- Public bundle size: `602,871` bytes
 
 The public production bundle and local production bundle are byte-identical. The public bundle contains the canonical address and does not contain the disposable rehearsal address.
 
@@ -36,7 +36,9 @@ Only the verified public production alias is provided as a reviewer link. The pl
 ## Live frontend checks
 
 - Production alias returned HTTP `200` and rendered `Accessibility Scope Covenant`.
-- The page displayed `Studionet · 61999` and the canonical contract abbreviation `0xe416b…b652a`.
+- The page displayed `Studionet · 61999` and the replacement contract abbreviation `0xc575a…3d617`.
+- The production bundle contains the replacement address and does not contain the historical address.
+- An unauthenticated production browser loaded replacement covenant `#1` by authoritative readback, displaying its five exact references, `SUPERSEDED`, `UNRESOLVED / HUMAN_REVIEW_REQUIRED`, attempts `1 / 3`, and the visible `Superseded by covenant #2` lineage control. No wallet was connected and no write was requested.
 - At the live 1280-by-720 viewport, document width was 1265 pixels: no horizontal overflow.
 - `Connect wallet` opened an explicit `Choose a wallet` provider-selector dialog.
 - With no compatible EIP-1193 provider detected, the dialog displayed that state and only offered `Cancel`; it did not select MetaMask, select a first provider, or request a connection.
@@ -45,7 +47,9 @@ Only the verified public production alias is provided as a reviewer link. The pl
 
 The first real-extension user check exposed duplicate Backpack announcements and a duplicate legacy MetaMask alias. The final discovery path deduplicates the same provider object and same EIP-6963 reverse-domain identity, uses normalized display name only to suppress an identity-less legacy alias, and preserves distinct reverse-domain identities even when display names match. Four focused regression cases pass. On the final production alias, the selector showed exactly four unique detected providers — Phantom, OKX Wallet, MetaMask and Backpack — with no duplicate or mislabeled row. The user then selected OKX Wallet and verified that the header displayed both the connected address (`0x0d4b8…ad563`) and `Studionet · 61999`. This initial selector check requested no write; the subsequent end-to-end transactions are recorded below.
 
-## Live end-to-end covenant journey
+## Historical pre-remediation live end-to-end covenant journey
+
+The following user-wallet journey belongs to the historical contract and is retained as release history only. It is not evidence for the replacement authorization fix. Replacement deployment, owner/non-owner authorization, assessment-time digest and supersession evidence is in `docs/JUDGE_REMEDIATION_EVIDENCE.md`.
 
 The user exercised the public Vercel application with OKX Wallet `0x0d4b860b08b9fba6cf1d928c4a19863176ead563` on Studionet. The live app created and authoritatively loaded covenant `#4`, then added this exact frozen evidence boundary:
 
@@ -98,8 +102,9 @@ Intermittent RPC/SDK and wallet behavior discovered during the journey produced 
 ## Gate history and scope disclosure
 
 - Anonymous `PRE_DEPLOY`: `APPROVED` for the exact contract source later deployed.
-- Anonymous `POST_DEPLOY_TEST`: `APPROVED` for commit `7dc65dcef5e36e268bb52898d36bba89e29d3f47` and the 28-entry post-deploy manifest.
-- The contract source, dependencies and canonical Studionet deployment are unchanged. Frontend wallet discovery, transaction recovery, regression tests, the production bundle and release evidence changed after the user exposed live browser/provider behavior; prior final approval is therefore superseded and a fresh exact-revision review is required.
+- Anonymous remediation `PRE_DEPLOY REPLACEMENT`: `APPROVED` for revision `8d05d03b3635c8f3ec740658f3cff61fa870d6e8` and contract SHA-256 `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`.
+- Anonymous remediation `POST_DEPLOY_TEST`: `APPROVED` for revision `62d157b35900153d0042d672015615579e1f6fe7`, replacement contract `0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617`, and manifest SHA-256 `4C916FA8072A22D8DCDB9F648DF49DCA9D723F9431E8F68DCACBBF5112560632`.
+- GitHub public branch `codex/main` read back exact commit `62d157b35900153d0042d672015615579e1f6fe7` before this evidence-only update. Vercel production `dpl_72LFUHb8vWEwkgkwRVCJHWd81tte` was built from that application source and serves the byte-identical bundle recorded above.
 - The final evidence commit and manifest will be supplied to anonymous `POST_GITHUB_VERCEL_FINAL`; Task status remains pending until that exact package receives anonymous approval and the primary AI approves the same revision.
 
 ## User wallet test
