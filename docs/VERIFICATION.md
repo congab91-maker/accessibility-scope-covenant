@@ -1,6 +1,6 @@
 # Verification record
 
-Checkpoint target: final public release package (`POST_GITHUB_VERCEL_FINAL` pending)
+Checkpoint target: judge-remediation candidate (`PRE_DEPLOY` pending)
 
 Network target: GenLayer Studionet, chain ID `61999` (`0xf22f`)
 
@@ -12,11 +12,17 @@ Canonical contract: `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`
 
 Deployment transaction: `0x8add8f28275136ec6604be66b26c224e31e94cdfcb8c5e3f840ac4fb7f3b19d4`
 
-Exact deployed code commit: `c566032159f42f62c0958ea3e8f28f679b166966`
+Current deployed code commit (historical release boundary): `c566032159f42f62c0958ea3e8f28f679b166966`
 
 Anonymous-approved post-deploy evidence commit: `7dc65dcef5e36e268bb52898d36bba89e29d3f47`
 
-Exact deployed source SHA-256: `A9BCD2B7E047AFD3C257FCCF911190BFD8DE9B41F90491B297A541D2E837BBAB`
+Current deployed source SHA-256 (before remediation upgrade): `A9BCD2B7E047AFD3C257FCCF911190BFD8DE9B41F90491B297A541D2E837BBAB`
+
+Proposed remediation implementation commit: `f73810333af73e9e2b24c6f65a53d136863c1cf9`
+
+Proposed remediation contract SHA-256: `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`
+
+The proposed source is not described as deployed until an approved upgrade reaches finality, execution success, exact deployed-code hash parity, preserved storage readback, and the authorization matrix below. The existing address, deployment transaction, deployed hash, and earlier evidence remain historical facts for the currently deployed version.
 
 Selected deployer/upgrader: `0x2e53bb6ED175A7F827590D9D3a353FC51Eb8996a`
 
@@ -30,7 +36,7 @@ No package or tool was downloaded or installed for this Task. The project reuses
 
 ```text
 C:\Users\LEGION\AppData\Local\Programs\Python\Python313\python.exe -m pytest -q -p no:cacheprovider
-19 passed
+20 passed
 
 $env:GENVM_VERSION='v0.3.0-rc7'
 E:\Genlayer-Tools\cyber-disclosure-delta-bootstrap\.venv\Scripts\python.exe -m genvm_linter.cli check contracts\accessibility_scope_covenant.py --json
@@ -54,17 +60,20 @@ Two advisories are reviewed:
 - Frontend: receipt finality/leader success boundaries, simplified rollback decoding, runtime contract-response validation, safe identifiers, wallet-provider deduplication, fail-closed account/network/disconnect events with listener cleanup, and method-specific readback behavior. Restart reconciliation covers create without a connected wallet, evidence, freeze, assessment, both sides of supersession, delayed readback and mismatch. Known hashes cannot bypass `FINALIZED/SUCCESS`; hashless recovery is actor-bound and requires a new transition from its pre-write baseline. Regressions reject no-broadcast, pre-existing idempotent state and finalized-error false recovery.
 - Browser: explicit provider selector and cancel behavior; no supported-provider fallback; no console errors; no unsafe links; no horizontal overflow or viewport escape at widths 320, 375, 414, 768, and 1280.
 
-## Deployment and recovery record
+## Proposed no-constructor upgrade plan
 
-1. Deploy only the exact reviewed contract source on Studionet with no constructor arguments.
-2. Immediately read `get_upgrader()` and require the selected account above.
-3. Run a minimal create/read lifecycle and all live acceptance journeys only after deployment finalizes.
-4. On a separate disposable deployment, rehearse an authorized bytecode upgrade that preserves the frozen storage order; verify pre-existing state remains readable.
-5. Attempt the same upgrade from a non-upgrader account and require rejection with unchanged code/state.
-6. If deployment or readback is ambiguous, do not retry blindly: reconcile the receipt and chain state first.
-7. If the canonical deployment is unusable or upgrade authority is lost, deploy a replacement and update all address references; never silently reuse another Task deployment.
+1. Obtain fresh anonymous `PRE_DEPLOY` approval bound to the remediation package and candidate source hash above.
+2. Use only the locked existing Studio account/upgrader `0x2e53bb6ED175A7F827590D9D3a353FC51Eb8996a` on Studionet.
+3. Upgrade the canonical address with the exact reviewed source bytes through the authorized upgrade path. This is a source replacement with no constructor call; storage field order and types are unchanged.
+4. Require transaction `FINALIZED`, consensus finality where present, leader execution `SUCCESS`, and deployed-code SHA-256 equal to `2829951136974620B731189817FA0A868206162C177B276255C7FB8BC79748C0`.
+5. Read `get_upgrader()` and representative pre-existing profiles before and after upgrade; require exact upgrader and state parity.
+6. Create a fresh owner-A frozen profile with attempts `0` and no assessment record. From unrelated owner B, call `assess_scope`; require the exact owner rejection and unchanged profile JSON, attempts, state, verdict, consequence, timestamps, assessment, and digest set. Then run the owner-A assessment and require the bounded attempt plus assessment-time `source_digest_set` readback.
+7. Verify public read-only inspection, non-owner frontend write disabling, and the existing two-argument supersession/lineage path.
+8. If upgrade or readback is ambiguous, do not retry blindly: reconcile receipt and chain state first. If canonical authority is unavailable, stop and obtain review for a replacement-deployment plan; never silently change the address.
 
-Anonymous `PRE_DEPLOY` approved the exact commit and source hash above. The canonical deployment is `FINALIZED`, majority-agree, leader execution `SUCCESS`, receipt status `0x1`, and deployed-code readback matches the exact approved source hash. `get_upgrader()` matches the selected account.
+## Historical deployment and recovery record
+
+The earlier anonymous `PRE_DEPLOY` approval applied only to the historical deployed commit/hash. The canonical deployment reached `FINALIZED`, majority agreement, leader execution `SUCCESS`, receipt status `0x1`, and deployed-code parity for that historical source. It does not approve the proposed remediation source.
 
 The complete post-deployment matrix is reconciled without cherry-picking in `docs/LIVE_STUDIO_EVIDENCE.md`. It includes successful and rejected lifecycle paths, replay/idempotency, bounded evidence, substantive consensus, supersession, second-account authorization, finalized critical reads, and a disposable exact-source upgrade rehearsal at `0xF83B36B0B66C0C08DDc3f36f4B5ecCe06d2D355D`.
 
