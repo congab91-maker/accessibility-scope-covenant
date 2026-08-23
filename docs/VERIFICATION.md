@@ -60,7 +60,11 @@ Two advisories are reviewed:
 - Frontend: receipt finality/leader success boundaries, simplified rollback decoding, runtime contract-response validation, safe identifiers, wallet-provider deduplication, fail-closed account/network/disconnect events with listener cleanup, and method-specific readback behavior. Restart reconciliation covers create without a connected wallet, evidence, freeze, assessment, both sides of supersession, delayed readback and mismatch. Known hashes cannot bypass `FINALIZED/SUCCESS`; hashless recovery is actor-bound and requires a new transition from its pre-write baseline. Regressions reject no-broadcast, pre-existing idempotent state and finalized-error false recovery.
 - Browser: explicit provider selector and cancel behavior; no supported-provider fallback; no console errors; no unsafe links; no horizontal overflow or viewport escape at widths 320, 375, 414, 768, and 1280.
 
-## Proposed replacement deployment plan
+## Verified replacement deployment
+
+The reviewed remediation source was deployed to `0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617` by the locked account. Deployment transaction `0xba76a030bdd5142fd8dbc5d9c59b0a8eda81d795554ded612a54489b3e37beff` is FINALIZED with successful leader execution, exact deployed-source hash parity, and authoritative upgrader readback. The owner-authorization, bounded-attempt, assessment-time digest, and two-argument supersession matrix is recorded in `docs/JUDGE_REMEDIATION_EVIDENCE.md`.
+
+## Replacement deployment plan (completed)
 
 1. Obtain fresh anonymous `PRE_DEPLOY` approval bound to the remediation package and candidate source hash above.
 2. Use only the locked replacement Studio account/deployer/upgrader `0xeF5D2119416A2f5afa35dCFA209766EFC1BE5902` on Studionet.

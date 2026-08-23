@@ -5,9 +5,9 @@ Accessibility Scope Covenant lets procurement reviewers freeze a product/version
 ## Verified links
 
 - [Live application](https://accessibility-scope-covenant.vercel.app)
-- [Canonical contract on Studionet Explorer](https://explorer-studio.genlayer.com/address/0xe416bd995e6eD1998397EF2675f1a1f390Ab652a)
+- [Canonical contract on Studionet Explorer](https://explorer-studio.genlayer.com/address/0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617)
 - [Deployment transaction](https://explorer-studio.genlayer.com/tx/0x8add8f28275136ec6604be66b26c224e31e94cdfcb8c5e3f840ac4fb7f3b19d4)
-- Contract: `0xe416bd995e6eD1998397EF2675f1a1f390Ab652a`
+- Contract: `0xc575a4F5F6006F411f03dF1Be2Cd9eE9EC83d617`
 - Network: GenLayer Studionet, chain ID `61999`
 
 ## Trust problem
